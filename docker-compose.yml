@@ -5,23 +5,53 @@ services:
     build: .
     container_name: video_downloader_bot
     restart: unless-stopped
+    
     environment:
+      # متغيرات البوت الأساسية
       - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
       - ADMIN_ID=${ADMIN_ID}
-      - LOG_CHANNEL_ID=${LOG_CHANNEL_ID}
+      - LOG_CHANNEL_ID=${LOG_CHANNEL_ID:-}
       - PORT=8080
+      
+      # متغيرات قاعدة البيانات
+      - MONGODB_URI=${MONGODB_URI}
+      
+      # متغيرات إضافية (إن وُجدت)
+      - PAYMENT_TOKEN=${PAYMENT_TOKEN:-}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+    
     volumes:
-      # حفظ البيانات بين إعادة التشغيل
-      - ./stats.json:/app/stats.json
-      - ./user_languages.json:/app/user_languages.json
+      # البيانات المستمرة
+      - ./data:/app/data
+      - ./logs:/app/logs
       - downloads:/tmp/downloads
+    
     ports:
       - "8080:8080"
+    
+    # إعدادات السجلات
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # الشبكة
+    networks:
+      - bot-network
 
 volumes:
   downloads:
+    driver: local
+
+networks:
+  bot-network:
+    driver: bridge
