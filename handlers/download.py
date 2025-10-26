@@ -1,5 +1,6 @@
 import os
 import asyncio
+import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import yt_dlp
@@ -26,62 +27,92 @@ if not os.path.exists(VIDEO_PATH):
     os.makedirs(VIDEO_PATH)
 
 class DownloadProgressTracker:
-    """تتبع تقدم التحميل مع تحديثات منتظمة"""
+    """تتبع تقدم التحميل مع تحديثات جميلة ومنتظمة"""
     def __init__(self, message, lang):
         self.message = message
         self.lang = lang
-        self.last_update = 0
-        self.last_percentage = 0
+        self.last_update_time = 0
+        self.last_percentage = -1
         
     def progress_hook(self, d):
         """يتم استدعاؤه من yt-dlp لتحديث التقدم"""
         if d['status'] == 'downloading':
             try:
+                current_time = time.time()
+                # تحديث كل 3 ثواني فقط لتجنب rate limit
+                if current_time - self.last_update_time < 3:
+                    return
+                
                 # حساب النسبة المئوية
                 downloaded = d.get('downloaded_bytes', 0)
                 total = d.get('total_bytes') or d.get('total_bytes_estimate', 0)
                 
                 if total > 0:
                     percentage = int((downloaded / total) * 100)
+                    
+                    # تحديث فقط إذا تغيرت النسبة بـ 5% على الأقل
+                    if abs(percentage - self.last_percentage) < 5:
+                        return
+                    
+                    self.last_percentage = percentage
+                    self.last_update_time = current_time
+                    
+                    # تنسيق البيانات
                     speed = d.get('speed', 0)
                     eta = d.get('eta', 0)
                     
-                    # تحديث فقط كل 10% لتجنب الـ rate limit
-                    if percentage >= self.last_percentage + 10:
-                        self.last_percentage = percentage
-                        
-                        # تنسيق السرعة
-                        speed_text = f"{speed / 1024 / 1024:.2f} MB/s" if speed else "..."
-                        eta_text = f"{eta}s" if eta else "..."
-                        
-                        progress_bar = self._create_progress_bar(percentage)
-                        
-                        update_text = (
-                            f"📥 **جاري التحميل...**\n\n"
-                            f"{progress_bar}\n"
-                            f"**النسبة:** {percentage}%\n"
-                            f"⚡ **السرعة:** {speed_text}\n"
-                            f"⏱️ **الوقت المتبقي:** {eta_text}"
-                        )
-                        
-                        # تحديث الرسالة بشكل آمن
-                        asyncio.create_task(self._safe_edit(update_text))
+                    downloaded_mb = downloaded / (1024 * 1024)
+                    total_mb = total / (1024 * 1024)
+                    speed_text = f"{speed / 1024 / 1024:.2f} MB/s" if speed else "..."
+                    
+                    # شريط التقدم الجميل
+                    progress_bar = self._create_fancy_progress_bar(percentage)
+                    
+                    # رموز حالة التحميل
+                    status_emoji = "🔄" if percentage < 50 else "⚡" if percentage < 90 else "🎉"
+                    
+                    update_text = (
+                        f"{status_emoji} **جاري التحميل...**\n\n"
+                        f"{progress_bar}\n\n"
+                        f"📊 **التقدم:** `{percentage}%`\n"
+                        f"📦 **المحمّل:** `{downloaded_mb:.1f} MB` / `{total_mb:.1f} MB`\n"
+                        f"⚡ **السرعة:** `{speed_text}`\n"
+                        f"⏱️ **المتبقي:** `{self._format_eta(eta)}`"
+                    )
+                    
+                    # تحديث الرسالة بشكل آمن
+                    try:
+                        loop = asyncio.get_event_loop()
+                        loop.create_task(self.message.edit_text(update_text, parse_mode='Markdown'))
+                    except:
+                        pass
                         
             except Exception as e:
                 logger.warning(f"خطأ في تحديث التقدم: {e}")
     
-    def _create_progress_bar(self, percentage):
-        """إنشاء شريط تقدم مرئي"""
-        filled = int(percentage / 5)  # 20 خانة للشريط
+    def _create_fancy_progress_bar(self, percentage):
+        """إنشاء شريط تقدم مرئي جميل"""
+        filled = int(percentage / 5)  # 20 خانة
         empty = 20 - filled
-        return f"[{'█' * filled}{'░' * empty}]"
+        
+        # استخدام رموز جميلة
+        bar = f"{'🟩' * filled}{'⬜' * empty}"
+        return f"`[{percentage:3d}%]` {bar}"
     
-    async def _safe_edit(self, text):
-        """تحديث آمن للرسالة"""
-        try:
-            await self.message.edit_text(text, parse_mode='Markdown')
-        except Exception as e:
-            logger.warning(f"فشل تحديث الرسالة: {e}")
+    def _format_eta(self, eta_seconds):
+        """تنسيق الوقت المتبقي"""
+        if not eta_seconds or eta_seconds <= 0:
+            return "حساب..."
+        
+        if eta_seconds < 60:
+            return f"{int(eta_seconds)} ثانية"
+        elif eta_seconds < 3600:
+            minutes = int(eta_seconds / 60)
+            return f"{minutes} دقيقة"
+        else:
+            hours = int(eta_seconds / 3600)
+            minutes = int((eta_seconds % 3600) / 60)
+            return f"{hours}:{minutes:02d} ساعة"
 
 async def send_log_to_channel(context: ContextTypes.DEFAULT_TYPE, user, video_info: dict, file_path: str):
     """إرسال سجل التحميل إلى قناة اللوج"""
@@ -97,7 +128,6 @@ async def send_log_to_channel(context: ContextTypes.DEFAULT_TYPE, user, video_in
     duration = video_info.get('duration', 0)
     filesize = video_info.get('filesize', 0) or video_info.get('filesize_approx', 0)
 
-    # تنسيق الحجم
     size_mb = filesize / (1024 * 1024) if filesize else 0
     
     log_caption = (
@@ -121,21 +151,12 @@ async def send_log_to_channel(context: ContextTypes.DEFAULT_TYPE, user, video_in
             )
     except Exception as e:
         logger.error(f"❌ فشل إرسال الفيديو إلى قناة السجل: {e}")
-        try:
-            await context.bot.send_message(
-                chat_id=LOG_CHANNEL_ID,
-                text=log_caption,
-                disable_web_page_preview=True,
-                parse_mode='Markdown'
-            )
-        except Exception as text_e:
-            logger.error(f"❌ فشل إرسال السجل النصي أيضاً: {text_e}")
 
 async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج تحميل الفيديوهات الرئيسي - محسّن"""
+    """معالج تحميل الفيديوهات الرئيسي - محسّن بالكامل"""
     user = update.message.from_user
     user_id = user.id
-    url = update.message.text
+    url = update.message.text.strip()
     lang = get_user_language(user_id)
     user_data = get_user(user_id)
     
@@ -145,10 +166,9 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     is_user_admin = is_admin(user_id)
     is_subscribed_user = is_subscribed(user_id)
-    
     config = get_config()
     
-    # 1. التحقق من حظر المواقع الإباحية
+    # 1. التحقق من حظر المواقع
     blocked_domains = config.get("BLOCKED_DOMAINS", [])
     for domain in blocked_domains:
         if domain.lower() in url.lower():
@@ -172,7 +192,7 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # رسالة البداية
     processing_message = await update.message.reply_text(
-        "🔍 **جاري التحليل...**\n\nيرجى الانتظار بينما أقوم بتحليل الرابط...",
+        "🔍 **جاري التحليل والتعرف على الفيديو...**\n\n⏳ يرجى الانتظار...",
         parse_mode='Markdown'
     )
     
@@ -180,53 +200,95 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp_watermarked_path = None
     
     try:
-        # إعداد تتبع التقدم
+        # إعداد yt-dlp مع خيارات محسّنة
         progress_tracker = DownloadProgressTracker(processing_message, lang)
         
-        # إعدادات yt-dlp محسّنة
+        # خيارات محسّنة لتجنب الأخطاء
         ydl_opts = {
-            'format': 'best[ext=mp4][height<=720]/best[ext=mp4]/best',
+            'format': 'best[ext=mp4][height<=720]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
             'outtmpl': os.path.join(VIDEO_PATH, '%(title)s.%(ext)s'),
             'noplaylist': True,
-            'quiet': False,
-            'no_warnings': False,
+            'quiet': True,
+            'no_warnings': True,
             'merge_output_format': 'mp4',
-            'progress_hooks': [progress_tracker.progress_hook],  # إضافة تتبع التقدم
+            'progress_hooks': [progress_tracker.progress_hook],
+            'socket_timeout': 30,
+            'retries': 3,
+            'fragment_retries': 3,
+            # خيارات إضافية لحل المشاكل
+            'nocheckcertificate': True,
+            'prefer_ffmpeg': True,
+            'keepvideo': False,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             loop = asyncio.get_event_loop()
             
-            # جلب معلومات الفيديو بدون تحميل
-            logger.info(f"🔍 جلب معلومات الفيديو من: {url}")
-            info_dict = await loop.run_in_executor(
-                None, 
-                lambda: ydl.extract_info(url, download=False)
-            )
+            # جلب معلومات الفيديو
+            logger.info(f"🔍 جلب معلومات من: {url}")
             
-            # التحقق من صحة المعلومات
+            try:
+                info_dict = await loop.run_in_executor(
+                    None, 
+                    lambda: ydl.extract_info(url, download=False)
+                )
+            except Exception as extract_error:
+                logger.error(f"❌ فشل استخراج المعلومات: {extract_error}")
+                error_msg = "❌ **فشل التحليل!**\n\n"
+                
+                if "Unsupported URL" in str(extract_error):
+                    error_msg += "هذا الرابط غير مدعوم. يرجى التأكد من أن الرابط من:\n• YouTube\n• Instagram\n• TikTok\n• Facebook"
+                elif "Private video" in str(extract_error):
+                    error_msg += "الفيديو خاص أو محمي. لا يمكن تحميله."
+                elif "Video unavailable" in str(extract_error):
+                    error_msg += "الفيديو غير متاح أو تم حذفه."
+                else:
+                    error_msg += f"خطأ: `{str(extract_error)[:150]}`"
+                
+                await processing_message.edit_text(error_msg, parse_mode='Markdown')
+                return
+            
             if not info_dict:
                 raise Exception("فشل في جلب معلومات الفيديو")
             
+            # استخراج المعلومات
             title = info_dict.get('title', 'video')
             duration = info_dict.get('duration', 0)
             filesize = info_dict.get('filesize', 0) or info_dict.get('filesize_approx', 0)
+            uploader = info_dict.get('uploader', 'غير معروف')
+            platform = info_dict.get('extractor_key', 'Unknown')
             
-            logger.info(f"✅ تم جلب المعلومات - العنوان: {title}, المدة: {duration}s")
+            logger.info(f"✅ المعلومات: {title}, المدة: {duration}s, المنصة: {platform}")
             
-            # عرض معلومات الفيديو للمستخدم
+            # عرض معلومات تفصيلية جميلة
             size_mb = filesize / (1024 * 1024) if filesize else 0
+            duration_formatted = f"{duration // 60}:{duration % 60:02d}" if duration else "غير معروف"
+            
+            platform_emoji = {
+                'Youtube': '🎥',
+                'Instagram': '📸',
+                'TikTok': '🎵',
+                'Facebook': '👥',
+                'Twitter': '🐦'
+            }.get(platform, '📹')
+            
             video_info_text = (
-                f"📋 **معلومات الفيديو:**\n\n"
-                f"🎬 **العنوان:** {title[:50]}...\n"
-                f"⏱️ **المدة:** {duration // 60}:{duration % 60:02d}\n"
-                f"📦 **الحجم:** ~{size_mb:.2f} MB\n\n"
+                f"{platform_emoji} **تم التعرف على الفيديو!**\n\n"
+                f"🎬 **العنوان:** {title[:60]}{'...' if len(title) > 60 else ''}\n"
+                f"👤 **القناة/المنشئ:** {uploader[:40]}\n"
+                f"⏱️ **المدة:** {duration_formatted}\n"
+                f"📦 **الحجم التقريبي:** {size_mb:.1f} MB\n"
+                f"📱 **المنصة:** {platform}\n\n"
                 f"⏳ **جاري بدء التحميل...**"
             )
+            
             await processing_message.edit_text(video_info_text, parse_mode='Markdown')
             await asyncio.sleep(2)
             
-            # 3. التحقق من حد المدة للمستخدمين غير المشتركين
+            # 3. التحقق من حد المدة
             max_free_duration = config.get("MAX_FREE_DURATION", 300)
             
             if not is_user_admin and not is_subscribed_user and duration and duration > max_free_duration:
@@ -241,38 +303,38 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
 
-            # بدء التحميل مع شريط التقدم
-            logger.info(f"📥 بدء تحميل الفيديو...")
+            # بدء التحميل
+            logger.info(f"📥 بدء التحميل من {platform}...")
             await processing_message.edit_text(
-                "📥 **بدء التحميل...**\n\n[░░░░░░░░░░░░░░░░░░░░] 0%",
+                "📥 **بدء التحميل...**\n\n`[  0%]` ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜",
                 parse_mode='Markdown'
             )
             
+            # التحميل الفعلي
             await loop.run_in_executor(None, lambda: ydl.download([url]))
             
-            # إعداد مسارات الملفات
+            # معالجة الملف
             original_filepath = ydl.prepare_filename(info_dict)
             cleaned_title = clean_filename(title)
             new_filepath = os.path.join(VIDEO_PATH, f"{cleaned_title}.mp4")
             
-            # إعادة تسمية الملف
             if os.path.exists(original_filepath):
                 if os.path.exists(new_filepath) and original_filepath != new_filepath:
                     os.remove(new_filepath)
                 os.rename(original_filepath, new_filepath)
             
             if not os.path.exists(new_filepath):
-                raise FileNotFoundError(f"الفيديو المحمل غير موجود في: {new_filepath}")
+                raise FileNotFoundError(f"الفيديو غير موجود: {new_filepath}")
 
-            logger.info(f"✅ تم التحميل بنجاح: {new_filepath}")
+            logger.info(f"✅ تم التحميل: {new_filepath}")
             
-            # 4. تطبيق اللوجو (للمستخدمين المجانيين فقط)
+            # 4. تطبيق اللوجو (للمجانيين فقط)
             logo_path = config.get("LOGO_PATH")
             final_video_path = new_filepath
             
             if not is_subscribed_user and not is_user_admin and logo_path and os.path.exists(logo_path):
                 await processing_message.edit_text(
-                    "🎨 **إضافة اللوجو...**\n\nيرجى الانتظار...",
+                    "🎨 **إضافة اللوجو الخاص...**\n\n⏳ لحظات...",
                     parse_mode='Markdown'
                 )
                 
@@ -281,29 +343,31 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 if result_path != new_filepath and os.path.exists(result_path):
                     final_video_path = result_path
-                    logger.info(f"✅ تم تطبيق اللوجو بنجاح")
-                else:
-                    logger.warning(f"⚠️ فشل تطبيق اللوجو. إرسال الملف الأصلي.")
+                    logger.info(f"✅ تم تطبيق اللوجو")
 
             # 5. رفع الفيديو
             await processing_message.edit_text(
-                "📤 **جاري الرفع...**\n\nيرجى الانتظار بينما أقوم برفع الفيديو إلى تيليجرام...",
+                "📤 **جاري الرفع إلى تيليجرام...**\n\n🚀 قريباً جداً...",
                 parse_mode='Markdown'
             )
             
-            # التحقق من حجم الملف (حد تيليجرام 2GB)
             file_size = os.path.getsize(final_video_path)
             if file_size > 2 * 1024 * 1024 * 1024:
-                await processing_message.edit_text(get_message(lang, "file_too_large"))
+                await processing_message.edit_text(
+                    "❌ **الملف كبير جداً!**\n\nالحجم أكبر من 2GB. تيليجرام لا يسمح بهذا الحجم.",
+                    parse_mode='Markdown'
+                )
                 return
             
-            # إعداد الـ caption
+            # إعداد caption جميل
             sub_emoji = "💎" if is_subscribed_user else "🆓"
+            file_size_mb = file_size / (1024 * 1024)
+            
             caption_text = (
-                f"{sub_emoji} **{title}**\n\n"
-                f"⏱️ المدة: {duration // 60}:{duration % 60:02d}\n"
-                f"📦 الحجم: {file_size / (1024 * 1024):.2f} MB\n\n"
-                f"✨ تم التحميل بواسطة @{context.bot.username}"
+                f"{platform_emoji} **{title}**\n\n"
+                f"👤 {uploader}\n"
+                f"⏱️ {duration_formatted} | 📦 {file_size_mb:.1f} MB\n"
+                f"{sub_emoji} تم بواسطة @{context.bot.username}"
             )
             
             # إرسال الفيديو
@@ -314,72 +378,87 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     caption=caption_text,
                     parse_mode='Markdown',
                     reply_to_message_id=update.message.message_id,
-                    supports_streaming=True
+                    supports_streaming=True,
+                    width=info_dict.get('width'),
+                    height=info_dict.get('height'),
+                    duration=duration
                 )
             
-            logger.info(f"✅ تم إرسال الفيديو بنجاح للمستخدم {user_id}")
+            logger.info(f"✅ تم الإرسال بنجاح للمستخدم {user_id}")
             
-            # 6. إعادة توجيه الفيديو إلى القناة الخاصة
+            # 6. إعادة توجيه للقناة
             log_channel_videos_id = config.get("LOG_CHANNEL_ID_VIDEOS")
             if log_channel_videos_id and sent_message:
                 try:
                     await sent_message.forward(chat_id=log_channel_videos_id)
-                    logger.info(f"✅ تم إعادة توجيه الفيديو إلى القناة الخاصة")
-                except Exception as forward_e:
-                    logger.error(f"❌ فشل إعادة توجيه الفيديو: {forward_e}")
+                except Exception as e:
+                    logger.error(f"❌ فشل التوجيه: {e}")
 
-            # إرسال سجل إلى قناة السجل القديمة
+            # إرسال للوج
             await send_log_to_channel(context, user, info_dict, final_video_path)
 
             # حذف رسالة المعالجة
-            await processing_message.delete()
+            try:
+                await processing_message.delete()
+            except:
+                pass
             
-            # زيادة عداد التحميلات (للمستخدمين المجانيين فقط)
+            # زيادة العداد
             if not is_user_admin and not is_subscribed_user:
                 increment_download_count(user_id)
                 remaining = FREE_USER_DOWNLOAD_LIMIT - get_daily_download_count(user_id)
                 if remaining > 0:
                     await update.message.reply_text(
-                        f"ℹ️ **تبقى لك {remaining} تحميلات مجانية اليوم**",
+                        f"ℹ️ **تبقى لك `{remaining}` تحميلات مجانية اليوم**",
+                        parse_mode='Markdown'
+                    )
+                elif remaining == 0:
+                    keyboard = [[InlineKeyboardButton(
+                        "🌟 اشترك للتحميل بلا حدود",
+                        url=get_message(lang, "subscribe_link")
+                    )]]
+                    await update.message.reply_text(
+                        "⚠️ **انتهت تحميلاتك المجانية اليوم!**\n\nاشترك للحصول على تحميلات غير محدودة.",
+                        reply_markup=InlineKeyboardMarkup(keyboard),
                         parse_mode='Markdown'
                     )
 
     except yt_dlp.utils.DownloadError as e:
-        logger.error(f"❌ خطأ في yt-dlp: {e}")
-        error_message = get_message(lang, "download_failed")
+        logger.error(f"❌ yt-dlp Error: {e}")
+        error_text = "❌ **فشل التحميل!**\n\n"
         
-        if "Unsupported URL" in str(e) or "not supported" in str(e).lower():
-            error_message = get_message(lang, "unsupported_platform")
-        elif "Private video" in str(e):
-            error_message = "❌ **الفيديو خاص!**\n\nهذا الفيديو خاص أو محمي ولا يمكن تحميله."
+        error_str = str(e).lower()
+        if "unsupported url" in error_str:
+            error_text += "المنصة غير مدعومة"
+        elif "private" in error_str:
+            error_text += "الفيديو خاص"
+        elif "unavailable" in error_str:
+            error_text += "الفيديو غير متاح"
+        elif "copyright" in error_str:
+            error_text += "الفيديو محمي بحقوق النشر"
+        else:
+            error_text += f"`{str(e)[:150]}`"
         
         try:
-            await processing_message.edit_text(error_message, parse_mode='Markdown')
-        except Exception:
-            await update.message.reply_text(error_message, parse_mode='Markdown')
+            await processing_message.edit_text(error_text, parse_mode='Markdown')
+        except:
+            await update.message.reply_text(error_text, parse_mode='Markdown')
             
     except Exception as e:
-        logger.error(f"❌ خطأ غير متوقع في handle_download: {e}", exc_info=True)
-        error_message = f"❌ **حدث خطأ!**\n\n`{str(e)[:200]}`"
+        logger.error(f"❌ خطأ غير متوقع: {e}", exc_info=True)
+        error_text = f"❌ **خطأ غير متوقع!**\n\n`{str(e)[:200]}`"
         
         try:
-            await processing_message.edit_text(error_message, parse_mode='Markdown')
-        except Exception:
-            await update.message.reply_text(error_message, parse_mode='Markdown')
+            await processing_message.edit_text(error_text, parse_mode='Markdown')
+        except:
+            await update.message.reply_text(error_text, parse_mode='Markdown')
             
     finally:
-        # تنظيف: حذف الملف الأصلي
-        if new_filepath and os.path.exists(new_filepath):
-            try:
-                os.remove(new_filepath)
-                logger.info(f"🗑️ تم حذف الملف المؤقت: {new_filepath}")
-            except Exception as e:
-                logger.error(f"❌ فشل حذف الملف المؤقت: {e}")
-        
-        # حذف الملف ذي العلامة المائية
-        if temp_watermarked_path and os.path.exists(temp_watermarked_path):
-            try:
-                os.remove(temp_watermarked_path)
-                logger.info(f"🗑️ تم حذف الملف المائي المؤقت")
-            except Exception as e:
-                logger.error(f"❌ فشل حذف الملف المائي: {e}")
+        # التنظيف
+        for filepath in [new_filepath, temp_watermarked_path]:
+            if filepath and os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                    logger.info(f"🗑️ تم حذف: {filepath}")
+                except Exception as e:
+                    logger.error(f"❌ فشل الحذف: {e}")
