@@ -41,7 +41,7 @@
     "broadcast_finished": "✅ **اكتمل البث!**\n\n- **تم الإرسال بنجاح إلى:** {sent_count} مستخدم. 🎉\n- **فشل الإرسال إلى:** {failed_count} مستخدم. 😔",
     "exit_admin_panel": "تم الخروج من لوحة التحكم بنجاح.",
     "blocked_domain_message": "🚫 **محتوى محظور!** 🚫\n\nعذراً، هذا الرابط ينتمي إلى موقع محظور وغير مسموح بتحميل المحتوى منه. يرجى إرسال رابط آخر.",
-    "applying_watermark": "💧 **لمسة فنية...** جاري إضافة اللوقو الخاص بالبوت على الفيديو. 🎨"
+    "applying_watermark": "💧 **لمسة فنية...** جاري إضافة اللوقو الخاص بالبوت على الفيديو. 🎨",
     "processing_video_info": "🎬 **جاري تحليل الفيديو...**\n\nأرسلت لي فيديو! سأقوم بتحليله وإعطائك معلوماته... 🔍",
     "video_info_result": "✨ **تم التحليل بنجاح!** ✨\n\n- **عنوان الفيديو:** {title}\n- **الأبعاد:** {width}x{height}\n- **المدة:** {duration} ثانية",
     "title_not_found": "غير متوفر (No Title Found) 🤷‍♀️",
@@ -89,7 +89,7 @@
     "broadcast_finished": "✅ **Broadcast Complete!**\n\n- **Successfully sent to:** {sent_count} users. 🎉\n- **Failed to send to:** {failed_count} users. 😔",
     "exit_admin_panel": "Exited the admin panel successfully.",
     "blocked_domain_message": "🚫 **Blocked Content!** 🚫\n\nSorry, this link belongs to a blocked site and downloading content from it is not allowed. Please send another link.",
-    "applying_watermark": "💧 **Artistic touch...** Applying the bot's logo to the video. 🎨"
+    "applying_watermark": "💧 **Artistic touch...** Applying the bot's logo to the video. 🎨",
     "processing_video_info": "🎬 **Analyzing Video...**\n\nYou sent me a video! I will analyze it and give you its information... 🔍",
     "video_info_result": "✨ **Analysis Successful!** ✨\n\n- **Video Title:** {title}\n- **Dimensions:** {width}x{height}\n- **Duration:** {duration} seconds",
     "title_not_found": "Not Available (No Title Found) 🤷‍♀️",
