@@ -11,12 +11,41 @@
     },
     "add_custom_logo": {
       "enabled": true,
-      "logo_path": "logo.png"
+      "logo_path": "Logo.png"
     }
   },
 
   "MAX_FREE_DURATION": 300,
-  "LOGO_PATH": "logo.png",
+  "LOGO_PATH": "Logo.png",
+  "LOG_CHANNEL_ID": null,
   "LOG_CHANNEL_ID_VIDEOS": null,
-  "BLOCKED_DOMAINS": ["pornhub.com", "xvideos.com", "xnxx.com", "redtube.com"]
+  
+  "BLOCKED_DOMAINS": [
+    "pornhub.com",
+    "xvideos.com", 
+    "xnxx.com",
+    "redtube.com",
+    "youporn.com",
+    "porn.com",
+    "sex.com",
+    "tube8.com",
+    "spankbang.com",
+    "eporner.com",
+    "hqporner.com",
+    "txxx.com",
+    "xhamster.com",
+    "beeg.com",
+    "drtuber.com"
+  ],
+  
+  "ADULT_CONTENT_KEYWORDS": [
+    "porn",
+    "xxx",
+    "sex",
+    "nude",
+    "nsfw",
+    "adult",
+    "18+",
+    "erotic"
+  ]
 }
