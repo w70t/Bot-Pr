@@ -24,7 +24,7 @@ services:
       - PAYMENT_TOKEN=${PAYMENT_TOKEN:-}
     
     volumes:
-      # البيانات المستمرة
+      # البيانات المستمرة - تأكد من الصلاحيات
       - ./data:/app/data
       - ./logs:/app/logs
       - ./videos:/app/videos
