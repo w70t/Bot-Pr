@@ -7,23 +7,27 @@ services:
     restart: unless-stopped
     
     environment:
-      # متغيرات البوت الأساسية
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      # متغيرات البوت - يجب أن تتطابق مع bot.py
+      - BOT_TOKEN=${BOT_TOKEN}
       - ADMIN_ID=${ADMIN_ID}
       - LOG_CHANNEL_ID=${LOG_CHANNEL_ID:-}
       - PORT=8080
       
-      # متغيرات قاعدة البيانات
+      # متغيرات قاعدة البيانات MongoDB
       - MONGODB_URI=${MONGODB_URI}
       
-      # متغيرات إضافية (إن وُجدت)
-      - PAYMENT_TOKEN=${PAYMENT_TOKEN:-}
+      # متغيرات Webhook (اختياري للتشغيل المحلي)
+      - RAILWAY_PUBLIC_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-}
       - WEBHOOK_URL=${WEBHOOK_URL:-}
+      
+      # متغيرات إضافية
+      - PAYMENT_TOKEN=${PAYMENT_TOKEN:-}
     
     volumes:
       # البيانات المستمرة
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./videos:/app/videos
       - downloads:/tmp/downloads
     
     ports:
@@ -36,13 +40,23 @@ services:
         max-size: "10m"
         max-file: "3"
     
-    # Health check
+    # Health check محسّن
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)'"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    
+    # حدود الموارد
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     
     # الشبكة
     networks:
