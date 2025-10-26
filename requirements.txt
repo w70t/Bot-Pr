@@ -1,0 +1,7 @@
+python-telegram-bot[webhooks]>=21.0.1
+requests
+beautifulsoup4
+yt-dlp # Updated to latest version to fix YouTube issues
+ffmpeg-python
+pymongo[srv]
+uvicorn

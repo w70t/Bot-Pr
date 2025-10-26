@@ -1,0 +1,9 @@
+# nixpacks.toml
+
+[phases.setup]
+# Add ffmpeg to the environment
+nixPkgs = ["...", "ffmpeg"]
+
+[start]
+# Specify the command to start the application
+cmd = "python bot.py"

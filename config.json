@@ -1,0 +1,22 @@
+{
+  "payments_enabled": true,
+  "binance_api_key": "YOUR_BINANCE_API_KEY_HERE",
+  "binance_secret_key": "YOUR_BINANCE_SECRET_KEY_HERE",
+  "subscription_price_usd": 2.0,
+
+  "premium_features": {
+    "large_downloads": {
+      "enabled": true,
+      "limit_mb": 50
+    },
+    "add_custom_logo": {
+      "enabled": true,
+      "logo_path": "logo.png"
+    }
+  },
+
+  "MAX_FREE_DURATION": 300,
+  "LOGO_PATH": "logo.png",
+  "LOG_CHANNEL_ID_VIDEOS": null,
+  "BLOCKED_DOMAINS": ["pornhub.com", "xvideos.com", "xnxx.com", "redtube.com"]
+}
