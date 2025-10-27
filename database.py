@@ -16,7 +16,6 @@ def init_db():
     """
     global client, db
     
-    # التحقق من الاتصال الموجود
     if db is not None: 
         return True
         
@@ -26,8 +25,8 @@ def init_db():
         return False
     
     try:
-        client = MongoClient(uri)
-        client.admin.command('ismaster')
+        client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+        client.admin.command('ping')
         db = client.telegram_bot_db
         logger.info("✅ تم الاتصال بقاعدة البيانات بنجاح!")
         return True
@@ -64,11 +63,11 @@ def add_user(user):
         "registration_date": datetime.now(timezone.utc),
         "last_interaction_date": datetime.now(timezone.utc),
         "download_count": 0,
-        "daily_download_count": 0,  # للحدود اليومية
-        "last_download_reset": datetime.now(timezone.utc),  # تاريخ آخر إعادة تعيين
+        "daily_download_count": 0,
+        "last_download_reset": datetime.now(timezone.utc),
         "subscription_status": "free",
         "subscription_expiry": None,
-        "watermark_enabled": False
+        "watermark_enabled": True
     }
     
     db.users.insert_one(user_data)
@@ -85,15 +84,12 @@ def is_subscribed(user_id):
     if not user:
         return False
     
-    # التحقق من حالة الاشتراك
     status = user.get("subscription_status", "free")
     if status in ["pro", "premium"]:
-        # التحقق من تاريخ انتهاء الاشتراك
         expiry = user.get("subscription_expiry")
         if expiry and expiry > datetime.now(timezone.utc):
             return True
         else:
-            # انتهى الاشتراك، نعيده إلى free
             set_user_subscription(user_id, "free", None)
             return False
     
@@ -121,12 +117,11 @@ def increment_download_count(user_id):
     if not user:
         return
     
-    # التحقق من الحدود اليومية
     last_reset = user.get("last_download_reset", datetime.now(timezone.utc))
     now = datetime.now(timezone.utc)
     
     # إذا مر 24 ساعة، نعيد تعيين العداد اليومي
-    if (now - last_reset).total_seconds() > 86400:  # 24 ساعة
+    if (now - last_reset).total_seconds() > 86400:
         db.users.update_one(
             {"user_id": user_id}, 
             {
@@ -138,7 +133,6 @@ def increment_download_count(user_id):
             }
         )
     else:
-        # زيادة العدادين
         db.users.update_one(
             {"user_id": user_id}, 
             {
@@ -163,7 +157,6 @@ def get_daily_download_count(user_id):
     last_reset = user.get("last_download_reset", datetime.now(timezone.utc))
     now = datetime.now(timezone.utc)
     
-    # إذا مر 24 ساعة، العداد اليومي = 0
     if (now - last_reset).total_seconds() > 86400:
         return 0
     
@@ -233,12 +226,10 @@ def set_user_subscription(user_id: int, status: str, expiry_date: datetime = Non
     update_fields = {"subscription_status": status}
     
     if status in ["pro", "premium"]:
-        # إذا لم يتم تحديد تاريخ انتهاء، نضيف 30 يوم افتراضياً
         if expiry_date is None:
             expiry_date = datetime.now(timezone.utc) + timedelta(days=30)
         update_fields["subscription_expiry"] = expiry_date
     else:
-        # إذا كان free، نحذف تاريخ الانتهاء
         update_fields["subscription_expiry"] = None
     
     result = db.users.update_one(
