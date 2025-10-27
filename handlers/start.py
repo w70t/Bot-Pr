@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardB
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
-from database import add_user, set_user_language, update_user_interaction, get_user_language
+from database import add_user, update_user_language, update_user_interaction, get_user_language
 from utils import get_message
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -10,7 +10,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     معالج أمر /start - يعرض اختيار اللغة وأزرار القائمة
     """
     user = update.message.from_user
-    add_user(user)
+    add_user(user.id, user.username, user.full_name)
     update_user_interaction(user.id)
 
     keyboard = [["العربية 🇸🇦", "English 🇬🇧"]]
@@ -37,7 +37,7 @@ async def select_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         lang_code = "ar"
 
-    set_user_language(user_id, lang_code)
+    update_user_language(user_id, lang_code)
     
     # الرسالة الترحيبية
     welcome_message = get_message(lang_code, "welcome").format(name=user.first_name)
