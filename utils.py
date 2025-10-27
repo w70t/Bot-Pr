@@ -67,7 +67,7 @@ def get_config():
     """
     return CONFIG
 
-def apply_watermark(input_path, output_path, logo_path, position='bottom_right', size=150):
+def apply_watermark(input_path, output_path, logo_path, position='center_right', size=150):
     """
     يطبق علامة مائية (لوجو) على الفيديو باستخدام FFmpeg
     
@@ -75,7 +75,7 @@ def apply_watermark(input_path, output_path, logo_path, position='bottom_right',
         input_path: مسار الفيديو المدخل
         output_path: مسار الفيديو الناتج
         logo_path: مسار ملف اللوجو
-        position: موقع اللوجو (top_left, top_right, bottom_left, bottom_right)
+        position: موقع اللوجو (center_right = الوسط على اليمين)
         size: عرض اللوجو بالبكسل
     
     Returns:
@@ -92,14 +92,15 @@ def apply_watermark(input_path, output_path, logo_path, position='bottom_right',
     try:
         logger.info(f"🎨 بدء إضافة اللوجو للفيديو: {input_path}")
         
-        # تحديد موضع اللوجو
+        # تحديد موضع اللوجو - الوسط على اليمين
         overlay_positions = {
             'top_left': '10:10',
             'top_right': 'W-w-10:10',
             'bottom_left': '10:H-h-10',
-            'bottom_right': 'W-w-10:H-h-10'
+            'bottom_right': 'W-w-10:H-h-10',
+            'center_right': 'W-w-10:(H-h)/2'  # الوسط على اليمين
         }
-        overlay_expr = overlay_positions.get(position, 'W-w-10:H-h-10')
+        overlay_expr = overlay_positions.get(position, 'W-w-10:(H-h)/2')
 
         # إعداد مدخلات FFmpeg
         input_video = ffmpeg.input(input_path)
