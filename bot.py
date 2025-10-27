@@ -1,5 +1,10 @@
 import os
 import logging
+
+# ⭐ إضافة هذا السطر لتحميل متغيرات .env
+from dotenv import load_dotenv
+load_dotenv()  # يحمل المتغيرات من ملف .env
+
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -31,6 +36,7 @@ WEBHOOK_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 PORT = int(os.getenv("PORT", 8443))
 LOG_CHANNEL_ID = os.getenv("LOG_CHANNEL_ID")
 
+# باقي الكود كما هو...
 async def forward_to_log_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """إعادة توجيه الرسائل إلى قناة اللوج"""
     if not LOG_CHANNEL_ID:
