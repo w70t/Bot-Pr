@@ -268,3 +268,29 @@ def get_users_count() -> dict:
     except Exception as e:
         logger.error(f"❌ فشل جلب العدد: {e}")
         return {'total': 0, 'vip': 0, 'free': 0}
+
+def set_logo_status(enabled: bool):
+    """تفعيل/إيقاف اللوجو للجميع"""
+    try:
+        # حفظ الحالة في مستند خاص بالإعدادات
+        db.settings.update_one(
+            {'_id': 'logo_settings'},
+            {'$set': {'enabled': enabled, 'updated_at': datetime.now()}},
+            upsert=True
+        )
+        logger.info(f"✅ تم {'تفعيل' if enabled else 'إيقاف'} اللوجو")
+        return True
+    except Exception as e:
+        logger.error(f"❌ فشل تحديث حالة اللوجو: {e}")
+        return False
+
+def is_logo_enabled() -> bool:
+    """التحقق من حالة اللوجو"""
+    try:
+        settings = db.settings.find_one({'_id': 'logo_settings'})
+        if settings:
+            return settings.get('enabled', True)
+        return True  # افتراضياً مفعّل
+    except Exception as e:
+        logger.error(f"❌ فشل جلب حالة اللوجو: {e}")
+        return True
