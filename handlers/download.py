@@ -27,7 +27,7 @@ if not os.path.exists(VIDEO_PATH):
     os.makedirs(VIDEO_PATH)
 
 class DownloadProgressTracker:
-    """تتبع تقدم التحميل مع عداد نسبة مئوية محسّن"""
+    """تتبع تقدم التحميل مع عداد نسبة مئوية"""
     def __init__(self, message, lang):
         self.message = message
         self.lang = lang
@@ -38,7 +38,6 @@ class DownloadProgressTracker:
         if d['status'] == 'downloading':
             try:
                 current_time = time.time()
-                # تحديث كل 2 ثانية
                 if current_time - self.last_update_time < 2:
                     return
                 
@@ -48,8 +47,7 @@ class DownloadProgressTracker:
                 if total > 0:
                     percentage = int((downloaded / total) * 100)
                     
-                    # تحديث إذا تغيرت النسبة بمقدار 3% أو أكثر
-                    if abs(percentage - self.last_percentage) < 3:
+                    if abs(percentage - self.last_percentage) < 5:
                         return
                     
                     self.last_percentage = percentage
@@ -60,10 +58,8 @@ class DownloadProgressTracker:
                     total_mb = total / (1024 * 1024)
                     speed_text = f"{speed / 1024 / 1024:.2f} MB/s" if speed else "..."
                     
-                    # شريط التقدم المحسّن
                     progress_bar = self._create_progress_bar(percentage)
                     
-                    # إيموجي ديناميكي
                     if percentage < 25:
                         status_emoji = "📥"
                     elif percentage < 50:
@@ -93,7 +89,6 @@ class DownloadProgressTracker:
                 logger.warning(f"خطأ في تحديث التقدم: {e}")
     
     def _create_progress_bar(self, percentage):
-        """إنشاء شريط تقدم جميل"""
         filled = int(percentage / 5)
         empty = 20 - filled
         bar = f"{'🟩' * filled}{'⬜' * empty}"
@@ -155,7 +150,7 @@ async def send_log_to_channel(context: ContextTypes.DEFAULT_TYPE, user, video_in
         logger.error(f"❌ فشل إرسال الفيديو إلى قناة السجل: {e}")
 
 async def show_quality_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, info_dict: dict):
-    """عرض قائمة اختيار الجودة"""
+    """عرض قائمة اختيار الجودة - مبسطة"""
     user_id = update.effective_user.id
     lang = get_user_language(user_id)
     
@@ -167,11 +162,10 @@ async def show_quality_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         'info': info_dict
     }
     
+    # قائمة مبسطة - 3 أزرار فقط
     keyboard = [
         [InlineKeyboardButton("🌟 أفضل جودة", callback_data="quality_best")],
-        [InlineKeyboardButton("📺 جودة عالية HD", callback_data="quality_high")],
-        [InlineKeyboardButton("📱 جودة متوسطة", callback_data="quality_medium")],
-        [InlineKeyboardButton("⚡ جودة منخفضة (سريع)", callback_data="quality_low")],
+        [InlineKeyboardButton("📱 جودة متوسطة (أسرع)", callback_data="quality_medium")],
         [InlineKeyboardButton("🎵 صوت فقط MP3", callback_data="quality_audio")],
     ]
     
@@ -179,8 +173,8 @@ async def show_quality_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     
     message_text = (
         f"📺 اختر الجودة:\n\n"
-        f"🎬 الفيديو: {title}\n"
-        f"⏱️ المدة: {duration}"
+        f"🎬 {title}\n"
+        f"⏱️ {duration}"
     )
     
     await update.message.reply_text(
@@ -210,16 +204,15 @@ async def handle_quality_selection(update: Update, context: ContextTypes.DEFAULT
     await download_video_with_quality(update, context, url, info_dict, quality_choice)
 
 async def download_video_with_quality(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, info_dict: dict, quality: str):
-    """تحميل الفيديو بالجودة المحددة"""
+    """تحميل الفيديو بالجودة المحددة - محسّن للسرعة"""
     user = update.effective_user
     user_id = user.id
     lang = get_user_language(user_id)
     
+    # إعدادات محسّنة للسرعة
     quality_formats = {
-        'best': 'bestvideo+bestaudio/best',
-        'high': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
+        'best': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',  # حد أقصى 1080p
         'medium': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
-        'low': 'bestvideo[height<=480]+bestaudio/best[height<=480]',
         'audio': 'bestaudio/best'
     }
     
@@ -232,6 +225,12 @@ async def download_video_with_quality(update: Update, context: ContextTypes.DEFA
         'no_warnings': True,
         'extract_flat': False,
         'ignoreerrors': True,
+        # تحسينات السرعة
+        'concurrent_fragment_downloads': 5,  # تحميل متعدد
+        'retries': 3,
+        'fragment_retries': 3,
+        'http_chunk_size': 10485760,  # 10MB chunks
+        'buffersize': 1024 * 512,  # 512KB buffer
     }
     
     if quality == 'audio':
@@ -244,7 +243,7 @@ async def download_video_with_quality(update: Update, context: ContextTypes.DEFA
     await perform_download(update, context, url, info_dict, ydl_opts, is_audio=(quality=='audio'))
 
 async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, info_dict: dict, ydl_opts: dict, is_audio: bool = False):
-    """تنفيذ عملية التحميل مع عداد النسبة المئوية"""
+    """تنفيذ عملية التحميل"""
     user = update.effective_user
     user_id = user.id
     lang = get_user_language(user_id)
@@ -264,11 +263,9 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     try:
         loop = asyncio.get_event_loop()
         
-        # عداد التقدم
         progress_tracker = DownloadProgressTracker(processing_message, lang)
         ydl_opts['progress_hooks'] = [progress_tracker.progress_hook]
         
-        # التحميل
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             await loop.run_in_executor(None, lambda: ydl.download([url]))
             
@@ -289,24 +286,27 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         
         logger.info(f"✅ تم التحميل: {new_filepath}")
         
-        # تطبيق اللوجو بصمت (بدون إخبار المستخدم)
+        # التحقق من حالة اللوجو والمستخدم
+        from database import is_logo_enabled
+        logo_enabled = is_logo_enabled()
+        
         logo_path = config.get("LOGO_PATH")
         final_video_path = new_filepath
         
-        if not is_audio and not is_subscribed_user and not is_user_admin and logo_path and os.path.exists(logo_path):
-            # لا نخبر المستخدم - نطبق اللوجو في الخلفية
+        # تطبيق اللوجو حسب الحالة
+        if not is_audio and logo_enabled and not is_subscribed_user and not is_user_admin and logo_path and os.path.exists(logo_path):
+            from utils import apply_animated_watermark
+            
             temp_watermarked_path = new_filepath.replace(f".{ext}", f"_watermarked.{ext}")
-            result_path = apply_watermark(new_filepath, temp_watermarked_path, logo_path)
+            result_path = apply_animated_watermark(new_filepath, temp_watermarked_path, logo_path)
             
             if result_path != new_filepath and os.path.exists(result_path):
                 final_video_path = result_path
-                logger.info(f"✅ تم تطبيق اللوجو بصمت")
+                logger.info(f"✨ تم تطبيق اللوجو المتحرك بنجاح!")
         
-        # عداد الرفع
         file_size = os.path.getsize(final_video_path)
         total_mb = file_size / (1024 * 1024)
         
-        # رسالة الرفع مع نسبة مئوية
         await processing_message.edit_text(
             f"📤 جاري الرفع...\n\n"
             f"⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜ 0%\n\n"
@@ -329,8 +329,8 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         )
         
         # محاكاة تقدم الرفع
-        for progress in [25, 50, 75, 90]:
-            await asyncio.sleep(0.5)
+        for progress in [25, 50, 75]:
+            await asyncio.sleep(0.3)
             filled = int(progress / 5)
             empty = 20 - filled
             bar = f"{'🟩' * filled}{'⬜' * empty}"
@@ -344,7 +344,6 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
             except:
                 pass
         
-        # الرفع الفعلي
         with open(final_video_path, 'rb') as file:
             if is_audio:
                 await context.bot.send_audio(
@@ -365,7 +364,6 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
                     duration=duration
                 )
                 
-                # إرسال للقناة الخاصة
                 log_channel_videos_id = config.get("LOG_CHANNEL_ID_VIDEOS")
                 if log_channel_videos_id and sent_message:
                     try:
@@ -413,7 +411,7 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
                     logger.error(f"❌ فشل الحذف: {e}")
 
 async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج تحميل الفيديوهات الرئيسي"""
+    """معالج تحميل الفيديوهات - يدعم جميع المنصات"""
     user = update.message.from_user
     user_id = user.id
     url = update.message.text.strip()
@@ -449,11 +447,19 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     processing_message = await update.message.reply_text("🔍 جاري التحليل...")
     
     try:
+        # إعدادات محسّنة لدعم Facebook وجميع المنصات
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
             'ignoreerrors': True,
+            # دعم خاص لـ Facebook
+            'cookiefile': None,
+            'extractor_args': {
+                'facebook': {
+                    'timeout': 30
+                }
+            }
         }
         
         loop = asyncio.get_event_loop()
@@ -468,7 +474,7 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await processing_message.edit_text("🚫 محتوى محظور!")
             return
         
-        max_free_duration = config.get("MAX_FREE_DURATION", 300)
+        max_free_duration = config.get("MAX_FREE_DURATION", 600)  # 10 دقائق بدلاً من 5
         if not is_user_admin and not is_subscribed_user and duration and duration > max_free_duration:
             keyboard = [[InlineKeyboardButton(
                 "⭐ اشترك الآن",
@@ -487,4 +493,4 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     except Exception as e:
         logger.error(f"❌ خطأ: {e}")
-        await processing_message.edit_text(f"❌ فشل التحليل!\n\n{str(e)[:200]}")
+        await processing_message.edit_text(f"❌ فشل التحليل!\n\nتأكد من الرابط وحاول مرة أخرى.")
