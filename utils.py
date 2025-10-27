@@ -6,17 +6,15 @@ import subprocess
 from telegram import BotCommand, BotCommandScopeChat
 import ffmpeg
 
-# --- إعدادات التسجيل ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- تحميل الرسائل ---
 MESSAGES = {}
 CONFIG = {}
 
 def load_config():
     """
-    يقوم بتحميل الإعدادات من ملف JSON.
+    يقوم بتحميل الإعدادات من ملف JSON
     """
     global CONFIG
     try:
@@ -32,7 +30,7 @@ def load_config():
 
 def load_messages():
     """
-    يقوم بتحميل الرسائل من ملف JSON.
+    يقوم بتحميل الرسائل من ملف JSON
     """
     global MESSAGES
     try:
@@ -48,15 +46,13 @@ def load_messages():
 
 def get_message(lang, key, **kwargs):
     """
-    يجلب رسالة مترجمة بناءً على اللغة والمفتاح.
+    يجلب رسالة مترجمة بناءً على اللغة والمفتاح
     """
-    # افتراضي إلى العربية إذا كانت اللغة غير موجودة
     if lang not in MESSAGES:
         lang = 'ar'
     
     message = MESSAGES.get(lang, {}).get(key, f"_{key}_")
     
-    # استبدال المتغيرات إذا وجدت
     if kwargs:
         try:
             message = message.format(**kwargs)
@@ -67,13 +63,13 @@ def get_message(lang, key, **kwargs):
 
 def get_config():
     """
-    يجلب الإعدادات المحملة.
+    يجلب الإعدادات المحملة
     """
     return CONFIG
 
 def apply_watermark(input_path, output_path, logo_path, position='bottom_right', size=150):
     """
-    يطبق علامة مائية (لوجو) على الفيديو باستخدام FFmpeg عبر مكتبة ffmpeg-python.
+    يطبق علامة مائية (لوجو) على الفيديو باستخدام FFmpeg
     
     Args:
         input_path: مسار الفيديو المدخل
@@ -123,7 +119,7 @@ def apply_watermark(input_path, output_path, logo_path, position='bottom_right',
             vcodec='libx264',
             acodec='aac',
             audio_bitrate='128k',
-            **{'b:v': '1000k'},  # معدل بت الفيديو
+            **{'b:v': '1000k'},
             preset='veryfast',
             movflags='faststart',
             loglevel='error'
@@ -145,11 +141,10 @@ def apply_watermark(input_path, output_path, logo_path, position='bottom_right',
 
 async def setup_bot_menu(bot):
     """
-    يقوم بإعداد قائمة الأوامر (Menu) للبوت للمستخدمين العاديين والمدراء.
+    يقوم بإعداد قائمة الأوامر (Menu) للبوت
     """
     logger.info("📋 إعداد قائمة أوامر البوت...")
     
-    # تحميل الرسائل لضمان وجودها
     if not MESSAGES:
         load_messages()
     
@@ -157,12 +152,14 @@ async def setup_bot_menu(bot):
     user_commands_ar = [
         BotCommand("start", get_message('ar', 'start_command_desc')),
         BotCommand("account", get_message('ar', 'account_command_desc')),
+        BotCommand("help", get_message('ar', 'help_command_desc')),
     ]
     
     # الأوامر العامة (باللغة الإنجليزية)
     user_commands_en = [
         BotCommand("start", get_message('en', 'start_command_desc')),
         BotCommand("account", get_message('en', 'account_command_desc')),
+        BotCommand("help", get_message('en', 'help_command_desc')),
     ]
     
     # أوامر المدير (باللغة العربية)
@@ -175,7 +172,7 @@ async def setup_bot_menu(bot):
         BotCommand("admin", get_message('en', 'admin_command_desc')),
     ]
 
-    # تعيين الأوامر الافتراضية (للغة العربية كقاعدة)
+    # تعيين الأوامر الافتراضية
     await bot.set_my_commands(user_commands_ar)
     logger.info("✅ تم تعيين قائمة الأوامر العامة.")
     
@@ -185,7 +182,6 @@ async def setup_bot_menu(bot):
     
     for admin_id in admin_ids:
         try:
-            # افتراض العربية للمدير
             await bot.set_my_commands(admin_commands_ar, scope=BotCommandScopeChat(chat_id=admin_id))
             logger.info(f"✅ تم تعيين قائمة أوامر خاصة للمدير ID: {admin_id}")
         except Exception as e:
@@ -193,26 +189,27 @@ async def setup_bot_menu(bot):
 
 def clean_filename(filename):
     """
-    يزيل الأحرف غير الصالحة من أسماء الملفات.
+    يزيل الأحرف غير الصالحة من أسماء الملفات
     """
-    # إزالة الأحرف الخاصة التي لا يمكن استخدامها في أسماء الملفات
     cleaned = re.sub(r'[\\/*?:"<>|]', "", filename)
-    # تقصير الاسم إذا كان طويلاً جداً
     if len(cleaned) > 200:
         cleaned = cleaned[:200]
     return cleaned
 
 def escape_markdown(text: str) -> str:
     """
-    يقوم بتهريب الأحرف الخاصة في MarkdownV2.
+    يقوم بتهريب الأحرف الخاصة في MarkdownV2
     """
     escape_chars = r'_*[]()~`>#+-=|{}.!'
     return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
 
 def format_file_size(size_bytes):
     """
-    تحويل حجم الملف من bytes إلى صيغة قابلة للقراءة.
+    تحويل حجم الملف من bytes إلى صيغة قابلة للقراءة
     """
+    if not size_bytes:
+        return "غير معروف"
+    
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024.0:
             return f"{size_bytes:.2f} {unit}"
@@ -221,8 +218,11 @@ def format_file_size(size_bytes):
 
 def format_duration(seconds):
     """
-    تحويل المدة من ثواني إلى صيغة قابلة للقراءة (HH:MM:SS).
+    تحويل المدة من ثواني إلى صيغة قابلة للقراءة (HH:MM:SS)
     """
+    if not seconds:
+        return "00:00"
+    
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -231,6 +231,42 @@ def format_duration(seconds):
         return f"{hours:02d}:{minutes:02d}:{secs:02d}"
     else:
         return f"{minutes:02d}:{secs:02d}"
+
+def get_video_info(file_path):
+    """
+    جلب معلومات الفيديو باستخدام FFprobe
+    
+    Returns:
+        dict: معلومات الفيديو (width, height, duration, codec, etc.)
+    """
+    try:
+        probe = ffmpeg.probe(file_path)
+        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        
+        return {
+            'width': int(video_info.get('width', 0)),
+            'height': int(video_info.get('height', 0)),
+            'duration': float(probe['format'].get('duration', 0)),
+            'size': int(probe['format'].get('size', 0)),
+            'codec': video_info.get('codec_name', 'unknown'),
+            'bitrate': int(probe['format'].get('bit_rate', 0))
+        }
+    except Exception as e:
+        logger.error(f"❌ فشل جلب معلومات الفيديو: {e}")
+        return None
+
+def validate_url(url: str) -> bool:
+    """
+    التحقق من صحة الرابط
+    """
+    url_pattern = re.compile(
+        r'^https?://'
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
+        r'localhost|'
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        r'(?::\d+)?'
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    return url_pattern.match(url) is not None
 
 # قم بتحميل الرسائل والإعدادات عند بدء تشغيل الوحدة
 load_config()
