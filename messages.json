@@ -2,97 +2,214 @@
   "ar": {
     "start_command_desc": "🚀 ابدأ رحلة التحميل السريع",
     "account_command_desc": "💎 حالة اشتراكك وإحصائياتك",
-    "admin_command_desc": "⚙️ لوحة تحكم المدير السري",
-    "welcome": "👋 **أهلاً بك يا {name}، نورت البوت!** ✨\n\nأرسل لي أي رابط فيديو من (يوتيوب، فيسبوك، انستغرام، تيك توك) وسأقوم بتحميله لك بسرعة البرق! ⚡️",
-    "limit_reached": "🚫 **توقف هنا!** 🚫\n\nلقد وصلت إلى الحد الأقصى للتحميلات المجانية اليوم (5 فيديوهات). اشترك الآن لتبدأ التحميل بلا حدود! 👇",
-    "subscribe_button_text": "اشترك الآن وحمّل بلا حدود! 💎",
-    "subscribe_link": "https://t.me/audiew",
-    "account_info": "👤 **بطاقة حسابك الشخصية**\n\n- **معرّف المستخدم:** `{user_id}`\n- **حالة الاشتراك:** **{subscription_status}**\n- **الفيديوهات المحمّلة اليوم:** {downloads_used} / 5\n- **التحميلات المتبقية:** {downloads_remaining}",
-    "upgrade_user_button": "⬆️ ترقية إلى مشترك VIP",
-    "downgrade_user_button": "⬇️ إزالة حالة VIP",
-    "upgrade_prompt": "✨ **لترقية مستخدم:** أرسل لي الآن معرّف المستخدم (ID) الذي تود ترقيته إلى اشتراك **VIP/Pro**.",
-    "downgrade_prompt": "🗑️ **لإلغاء ترقية:** أرسل لي الآن معرّف المستخدم (ID) الذي تود إعادته إلى الاشتراك المجاني.",
-    "invalid_user_id": "❌ **خطأ:** المعرّف الذي أدخلته غير صالح. الرجاء إرسال أرقام فقط.",
-    "user_not_found": "🤷‍♂️ **عفواً:** لم يتم العثور على مستخدم بهذا المعرّف.",
-    "upgrade_success": "✅ **نجاح!** تم ترقية المستخدم `{user_id}` إلى **VIP** بنجاح! 👑",
-    "downgrade_success": "✅ **تم:** تمت إعادة المستخدم `{user_id}` إلى الخطة المجانية بنجاح.",
-    "upgrade_notification": "🎉 **تهانينا! أنت الآن VIP!** 🎉\n\nتمت ترقية حسابك إلى اشتراك **Pro/VIP**! يمكنك الآن التحميل بلا حدود وبأقصى جودة! استمتع! 🚀",
-    "downgrade_notification": "ℹ️ **تنبيه:** تم تحديث حالة حسابك. أنت الآن على الخطة المجانية.",
-    "generic_error": "❌ **عذراً:** حدث خطأ غير متوقع. لم يتم تغيير حالة المستخدم.",
-    "processing": "🔍 **لحظة من فضلك...** جاري تحليل ومعالجة الرابط.",
-    "downloading": "📥 **بدأ التحميل!** جاري سحب الفيديو من المصدر... ⏳",
-    "uploading": "📤 **اللمسات الأخيرة...** جاري رفع الفيديو إليك. استعد! 😉",
-    "download_failed": "❌ **فشل التحميل!** 😔\n\nعذراً، حدث خطأ أثناء محاولة تحميل الفيديو. يرجى التأكد من أن الرابط صحيح وعام، وأن الفيديو متاح للتحميل.",
-    "unsupported_platform": "⚠️ **منصة غير مدعومة:** عذراً، هذه المنصة غير مدعومة حالياً.",
-    "duration_limit_exceeded": "⏰ **فيديو طويل جداً!** 😩\n\nمدة الفيديو تتجاوز الحد المسموح به للمستخدمين المجانيين ({limit} دقائق). \n\n**لتحميل الفيديوهات الطويلة، يرجى الاشتراك!** 👇",
-    "file_too_large": "📦 **حجم ضخم!** 🤯\n\nعذراً، حجم الفيديو كبير جداً (أكثر من 2 جيجا) ولا يمكن رفعه على تيليجرام.",
-    "error_finding_user": "❌ **خطأ في البيانات:** لم يتم العثور على بياناتك. الرجاء إرسال /start مرة أخرى.",
-    "video_caption": "🎬 **العنوان:** {title}\n\n✨ **تم التحميل بواسطة:** @{bot_username}",
-    "sub_free": "مجاني (Free)",
-    "sub_pro": "مشترك VIP",
-    "admin_only_command": "🔒 **ممنوع الدخول!** هذا الأمر مخصص للمدراء فقط.",
-    "admin_panel_welcome": "⚙️ **أهلاً بك يا ملك البوت!** لوحة تحكم المدير بين يديك.",
-    "stats_button": "📊 إحصائيات البوت",
-    "broadcast_button": "📢 رسالة جماعية للجميع",
-    "exit_button": "➡️ خروج من اللوحة",
-    "stats_message": "📈 **إحصائيات البوت العامة**\n\n- **إجمالي المستخدمين:** {total_users} 👥\n- **إجمالي التحميلات:** {total_downloads} 💾",
-    "broadcast_prompt": "📝 **أرسل رسالتك:** أرسل الآن الرسالة التي تود بثها لجميع المستخدمين.",
-    "broadcast_started": "⏳ **بدء البث:** جاري إرسال الرسالة إلى {user_count} مستخدم...",
-    "broadcast_finished": "✅ **اكتمل البث!**\n\n- **تم الإرسال بنجاح إلى:** {sent_count} مستخدم. 🎉\n- **فشل الإرسال إلى:** {failed_count} مستخدم. 😔",
-    "exit_admin_panel": "تم الخروج من لوحة التحكم بنجاح.",
-    "blocked_domain_message": "🚫 **محتوى محظور!** 🚫\n\nعذراً، هذا الرابط ينتمي إلى موقع محظور وغير مسموح بتحميل المحتوى منه. يرجى إرسال رابط آخر.",
-    "applying_watermark": "💧 **لمسة فنية...** جاري إضافة اللوقو الخاص بالبوت على الفيديو. 🎨",
-    "processing_video_info": "🎬 **جاري تحليل الفيديو...**\n\nأرسلت لي فيديو! سأقوم بتحليله وإعطائك معلوماته... 🔍",
-    "video_info_result": "✨ **تم التحليل بنجاح!** ✨\n\n- **عنوان الفيديو:** {title}\n- **الأبعاد:** {width}x{height}\n- **المدة:** {duration} ثانية",
-    "title_not_found": "غير متوفر (No Title Found) 🤷‍♀️",
-    "video_info_failed": "❌ **فشل التحليل:** عذراً، لم أتمكن من تحليل بيانات هذا الفيديو."
+    "admin_command_desc": "⚙️ لوحة تحكم المدير",
+    "help_command_desc": "❓ دليل الاستخدام الكامل",
+    
+    "welcome": "🎉 **أهلاً وسهلاً {name}!** ✨\n\n🎬 أنا بوت تحميل الفيديوهات الاحترافي!\n\n✅ **المنصات المدعومة:**\n🔸 YouTube | Instagram | Facebook\n🔸 TikTok | Twitter | Reddit\n🔸 وأكثر من 1000+ موقع!\n\n📥 **كيف تستخدمني؟**\n• أرسل رابط الفيديو\n• أو أرسل فيديو للتعرف عليه\n• أو اضغط على الأزرار بالأسفل\n\n⚡ **جاهز للتحميل؟** أرسل الرابط الآن!",
+    
+    "help_message": "📚 **دليل الاستخدام الشامل**\n\n🎯 **كيفية التحميل:**\n1️⃣ أرسل رابط الفيديو من أي منصة\n2️⃣ اختر الجودة المطلوبة\n3️⃣ انتظر قليلاً... وتم التحميل! 🎉\n\n🎥 **التعرف على الفيديوهات:**\n• أرسل فيديو من جهازك\n• سأخبرك باسمه ومعلوماته\n• وسأرسله لقناتي الخاصة\n\n💎 **الخطة المجانية:**\n• 5 تحميلات يومياً\n• فيديوهات حتى 5 دقائق\n• لوجو على الفيديو\n\n👑 **الخطة المميزة (VIP):**\n• تحميلات غير محدودة ♾️\n• فيديوهات بأي طول ⏱️\n• بدون لوجو 🎨\n• جودات متعددة 4K/HD 📺\n• أولوية في المعالجة ⚡\n\n📞 **للدعم:** @YourSupportUsername",
+    
+    "limit_reached": "🚫 **عذراً! وصلت للحد اليومي** 😔\n\n📊 لقد استخدمت **5/5** تحميلات اليوم\n⏰ سيتم تجديد حصتك غداً تلقائياً\n\n💎 **هل تريد تحميلات غير محدودة؟**\n👑 اشترك في الباقة المميزة الآن!\n\n✨ **مميزات VIP:**\n♾️ تحميلات بلا حدود\n🎬 فيديوهات بأي طول\n🎨 بدون لوجو\n📺 جودات عالية 4K/HD",
+    
+    "subscribe_button_text": "⭐ اشترك الآن - خطة VIP",
+    "subscribe_link": "https://t.me/YourChannelHere",
+    
+    "account_info": "👤 **بطاقتك الشخصية**\n\n🆔 **المعرف:** `{user_id}`\n💎 **الحالة:** {subscription_status}\n📊 **التحميلات اليوم:** {downloads_used}/5\n⚡ **المتبقي:** {downloads_remaining}\n\n{subscription_details}",
+    
+    "account_free_details": "🆓 **خطة مجانية**\n\n📥 تحميلات يومية: 5\n⏱️ مدة الفيديو: حتى 5 دقائق\n🎨 لوجو على الفيديو: نعم\n\n💡 **ترقية للـ VIP؟** اضغط /subscribe",
+    
+    "account_pro_details": "👑 **مشترك VIP**\n\n♾️ تحميلات: غير محدودة\n⏱️ مدة الفيديو: بلا حدود\n🎨 بدون لوجو\n📺 جودات عالية\n⚡ أولوية في المعالجة\n\n✅ **صالح حتى:** {expiry_date}",
+    
+    "processing": "🔍 **جاري التحليل...**\n\n⏳ يرجى الانتظار لحظات...",
+    
+    "downloading": "📥 **بدأ التحميل!**\n\n⚡ جاري سحب الفيديو...",
+    
+    "uploading": "📤 **اللمسات الأخيرة...**\n\n🚀 جاري رفع الفيديو إليك...",
+    
+    "download_failed": "❌ **فشل التحميل!** 😔\n\n🔍 **الأسباب المحتملة:**\n• الرابط غير صحيح\n• الفيديو خاص أو محذوف\n• المنصة محظورة مؤقتاً\n\n💡 **جرب:**\n• تأكد من الرابط\n• جرب رابط آخر\n• راسل الدعم إذا استمرت المشكلة",
+    
+    "unsupported_platform": "⚠️ **منصة غير مدعومة**\n\n😔 عذراً، هذه المنصة غير مدعومة حالياً.\n\n✅ **المنصات المدعومة:**\nYouTube, Instagram, Facebook, TikTok, Twitter, Reddit\n\n📢 نعمل على إضافة المزيد من المنصات قريباً!",
+    
+    "duration_limit_exceeded": "⏰ **فيديو طويل!** 🎬\n\n📏 مدة الفيديو: **أطول من {limit} دقائق**\n🆓 الخطة المجانية: **حتى 5 دقائق فقط**\n\n👑 **حل بسيط:**\nاشترك في VIP لتحميل فيديوهات بأي طول!\n\n✨ **مميزات VIP:**\n♾️ فيديوهات بلا حدود في الطول\n📺 جودات عالية 4K/HD\n🎨 بدون لوجو",
+    
+    "file_too_large": "📦 **حجم ضخم!** 🤯\n\n📊 حجم الفيديو أكبر من **2 جيجا**\n⚠️ تيليجرام لا يسمح بهذا الحجم\n\n💡 **جرب:**\n• اختر جودة أقل\n• حمل فيديو أقصر",
+    
+    "error_finding_user": "❌ **خطأ في البيانات**\n\nلم أجد بياناتك. الرجاء إرسال /start مرة أخرى.",
+    
+    "video_caption": "🎬 **{title}**\n\n👤 {uploader}\n⏱️ {duration} | 📦 {size}\n\n✨ تم بواسطة @{bot_username}",
+    
+    "sub_free": "🆓 مجاني",
+    "sub_pro": "👑 VIP",
+    
+    "admin_only_command": "🔒 **ممنوع!** هذا الأمر للمدراء فقط.",
+    
+    "admin_panel_welcome": "⚙️ **لوحة التحكم - مرحباً أيها المدير!**\n\n🎛️ اختر من القائمة:",
+    
+    "stats_button": "📊 الإحصائيات",
+    "broadcast_button": "📢 إرسال جماعي",
+    "upgrade_user_button": "⬆️ ترقية مستخدم",
+    "downgrade_user_button": "⬇️ إلغاء ترقية",
+    "exit_button": "🚪 خروج",
+    
+    "stats_message": "📈 **إحصائيات البوت**\n\n👥 **المستخدمين:**\n• الإجمالي: {total_users}\n• المشتركين VIP: {total_subscribers}\n• نشطين (7 أيام): {active_7d}\n• نشطين (30 يوم): {active_30d}\n\n📥 **التحميلات:**\n• الإجمالي: {total_downloads}\n\n📅 **التاريخ:** {date}",
+    
+    "broadcast_prompt": "📝 **أرسل رسالتك الآن**\n\nسأقوم بإرسالها لجميع المستخدمين.",
+    
+    "broadcast_started": "⏳ **جاري الإرسال...**\n\n📤 سأرسل لـ {user_count} مستخدم",
+    
+    "broadcast_finished": "✅ **اكتمل!**\n\n✔️ نجح: {sent_count}\n❌ فشل: {failed_count}",
+    
+    "upgrade_prompt": "✨ **ترقية مستخدم**\n\n👤 أرسل معرف المستخدم (ID) الآن:",
+    
+    "downgrade_prompt": "🗑️ **إلغاء ترقية**\n\n👤 أرسل معرف المستخدم (ID) الآن:",
+    
+    "invalid_user_id": "❌ **خطأ!** المعرف غير صالح.\nأرسل أرقاماً فقط.",
+    
+    "user_not_found": "🤷‍♂️ **لم أجد هذا المستخدم!**",
+    
+    "upgrade_success": "✅ **تمت الترقية!**\n\n👑 المستخدم `{user_id}` الآن VIP",
+    
+    "downgrade_success": "✅ **تم الإلغاء!**\n\n🆓 المستخدم `{user_id}` الآن مجاني",
+    
+    "upgrade_notification": "🎉 **مبروك! أنت الآن VIP!** 👑\n\n✨ **مميزاتك الجديدة:**\n♾️ تحميلات غير محدودة\n⏱️ فيديوهات بأي طول\n🎨 بدون لوجو\n📺 جودات عالية 4K/HD\n⚡ أولوية في المعالجة\n\n🚀 استمتع!",
+    
+    "downgrade_notification": "ℹ️ **تنبيه**\n\nتم تحديث حسابك إلى الخطة المجانية.",
+    
+    "exit_admin_panel": "👋 **تم الخروج من لوحة التحكم**",
+    
+    "blocked_domain_message": "🚫 **محتوى محظور!** 🔞\n\n⚠️ هذا الموقع محظور ولا يمكن التحميل منه.\n\n✅ الرجاء إرسال رابط من منصة مدعومة.",
+    
+    "adult_content_detected": "🚫 **محتوى غير لائق!** 🔞\n\n⚠️ تم اكتشاف محتوى للبالغين\n❌ لا يمكن معالجة هذا الفيديو\n\n✅ الرجاء إرسال محتوى مناسب.",
+    
+    "processing_video_info": "🎬 **جاري تحليل الفيديو...**\n\n🔍 أرسلت لي فيديو! دعني أفحصه...",
+    
+    "video_info_result": "✨ **تم التحليل بنجاح!** 🎉\n\n🎬 **العنوان:** {title}\n📐 **الأبعاد:** {width}x{height}\n⏱️ **المدة:** {duration}\n📦 **الحجم:** {size}\n🎨 **الجودة:** {quality}\n\n📋 **انسخ التفاصيل:**\n`{title}`\n\n📺 تم إرسال نسخة لقناتي الخاصة!",
+    
+    "video_info_with_link": "✨ **معلومات الفيديو** 🎉\n\n🎬 **العنوان:** {title}\n📐 **الأبعاد:** {width}x{height}\n⏱️ **المدة:** {duration}\n📦 **الحجم:** {size}\n🔗 **الرابط:** {url}\n\n📋 **انسخ:**\n`{title}`\n`{url}`",
+    
+    "title_not_found": "غير متوفر",
+    
+    "video_info_failed": "❌ **فشل التحليل**\n\nعذراً، لم أتمكن من تحليل هذا الفيديو.",
+    
+    "quality_selection": "📺 **اختر الجودة:**\n\n🎬 الفيديو: **{title}**\n⏱️ المدة: **{duration}**",
+    
+    "audio_only": "🎵 صوت فقط (MP3)",
+    "video_quality_best": "🌟 أفضل جودة",
+    "video_quality_high": "📺 جودة عالية (HD)",
+    "video_quality_medium": "📱 جودة متوسطة",
+    "video_quality_low": "⚡ جودة منخفضة (سريع)",
+    
+    "download_menu": "📥 **قائمة التحميل**\n\nماذا تريد أن تفعل؟",
+    "download_video_button": "🎬 تحميل فيديو",
+    "my_account_button": "👤 حسابي",
+    "help_button": "❓ المساعدة",
+    "subscribe_menu_button": "⭐ الاشتراك VIP"
   },
+  
   "en": {
-    "start_command_desc": "🚀 Start the fast download journey",
-    "account_command_desc": "💎 Your subscription status and stats",
-    "admin_command_desc": "⚙️ Secret Admin Panel",
-    "welcome": "👋 **Welcome, {name}!** ✨\n\nSend me any video link from (YouTube, Facebook, Instagram, TikTok) and I'll download it for you at lightning speed! ⚡️",
-    "limit_reached": "🚫 **Stop right there!** 🚫\n\nYou have reached your daily free download limit (5 videos). Subscribe now to download without limits! 👇",
-    "subscribe_button_text": "Subscribe Now for Unlimited Downloads! 💎",
-    "subscribe_link": "https://t.me/audiew",
-    "account_info": "👤 **Your Personal Account Card**\n\n- **User ID:** `{user_id}`\n- **Subscription Status:** **{subscription_status}**\n- **Videos Downloaded Today:** {downloads_used} / 5\n- **Downloads Remaining:** {downloads_remaining}",
-    "upgrade_user_button": "⬆️ Upgrade to VIP Subscriber",
-    "downgrade_user_button": "⬇️ Remove VIP Status",
-    "upgrade_prompt": "✨ **To Upgrade:** Send me the User ID you want to upgrade to **VIP/Pro** subscription.",
-    "downgrade_prompt": "🗑️ **To Downgrade:** Send me the User ID you want to revert to the Free plan.",
-    "invalid_user_id": "❌ **Error:** The ID you entered is invalid. Please send numbers only.",
-    "user_not_found": "🤷‍♂️ **Sorry:** User with this ID not found.",
-    "upgrade_success": "✅ **Success!** User `{user_id}` has been successfully upgraded to **VIP**! 👑",
-    "downgrade_success": "✅ **Done:** User `{user_id}` has been successfully reverted to the Free plan.",
-    "upgrade_notification": "🎉 **Congrats! You are now VIP!** 🎉\n\nYour account has been upgraded to **Pro/VIP**! You can now download without limits and at maximum quality! Enjoy! 🚀",
-    "downgrade_notification": "ℹ️ **Notice:** Your account status has been updated. You are now on the Free plan.",
-    "generic_error": "❌ **Sorry:** An unexpected error occurred. User status was not changed.",
-    "processing": "🔍 **Just a moment...** Analyzing and processing the link.",
-    "downloading": "📥 **Download Started!** Fetching the video from the source... ⏳",
-    "uploading": "📤 **Final touches...** Uploading the video to you. Get ready! 😉",
-    "download_failed": "❌ **Download Failed!** 😔\n\nSorry, an error occurred while trying to download the video. Please make sure the link is correct and public, and the video is available for download.",
-    "unsupported_platform": "⚠️ **Unsupported Platform:** Sorry, this platform is not currently supported.",
-    "duration_limit_exceeded": "⏰ **Video too long!** 😩\n\nThe video duration exceeds the allowed limit for free users ({limit} minutes). \n\n**To download long videos, please subscribe!** 👇",
-    "file_too_large": "📦 **Massive Size!** 🤯\n\nSorry, the video file is too large (more than 2GB) and cannot be uploaded to Telegram.",
-    "error_finding_user": "❌ **Data Error:** Could not find your data. Please send /start again.",
-    "video_caption": "🎬 **Title:** {title}\n\n✨ **Downloaded by:** @{bot_username}",
-    "sub_free": "Free",
-    "sub_pro": "VIP Subscriber",
-    "admin_only_command": "🔒 **Access Denied!** This command is for admins only.",
-    "admin_panel_welcome": "⚙️ **Welcome, King of the Bot!** The Admin Panel is at your command.",
-    "stats_button": "📊 Bot Statistics",
-    "broadcast_button": "📢 Broadcast Message to All",
-    "exit_button": "➡️ Exit Panel",
-    "stats_message": "📈 **General Bot Statistics**\n\n- **Total Users:** {total_users} 👥\n- **Total Downloads:** {total_downloads} 💾",
-    "broadcast_prompt": "📝 **Send your message:** Now send the message you want to broadcast to all users.",
-    "broadcast_started": "⏳ **Broadcast Starting:** Sending the message to {user_count} users...",
-    "broadcast_finished": "✅ **Broadcast Complete!**\n\n- **Successfully sent to:** {sent_count} users. 🎉\n- **Failed to send to:** {failed_count} users. 😔",
-    "exit_admin_panel": "Exited the admin panel successfully.",
-    "blocked_domain_message": "🚫 **Blocked Content!** 🚫\n\nSorry, this link belongs to a blocked site and downloading content from it is not allowed. Please send another link.",
-    "applying_watermark": "💧 **Artistic touch...** Applying the bot's logo to the video. 🎨",
-    "processing_video_info": "🎬 **Analyzing Video...**\n\nYou sent me a video! I will analyze it and give you its information... 🔍",
-    "video_info_result": "✨ **Analysis Successful!** ✨\n\n- **Video Title:** {title}\n- **Dimensions:** {width}x{height}\n- **Duration:** {duration} seconds",
-    "title_not_found": "Not Available (No Title Found) 🤷‍♀️",
-    "video_info_failed": "❌ **Analysis Failed:** Sorry, I couldn't analyze the data for this video."
+    "start_command_desc": "🚀 Start fast downloads",
+    "account_command_desc": "💎 Your subscription & stats",
+    "admin_command_desc": "⚙️ Admin panel",
+    "help_command_desc": "❓ Complete guide",
+    
+    "welcome": "🎉 **Welcome {name}!** ✨\n\n🎬 I'm a professional video downloader bot!\n\n✅ **Supported Platforms:**\n🔸 YouTube | Instagram | Facebook\n🔸 TikTok | Twitter | Reddit\n🔸 And 1000+ more sites!\n\n📥 **How to use me?**\n• Send video link\n• Or send a video to identify it\n• Or press buttons below\n\n⚡ **Ready to download?** Send link now!",
+    
+    "help_message": "📚 **Complete User Guide**\n\n🎯 **How to Download:**\n1️⃣ Send video link from any platform\n2️⃣ Choose quality\n3️⃣ Wait a moment... Done! 🎉\n\n🎥 **Video Recognition:**\n• Send a video from your device\n• I'll tell you its name & info\n• And send it to my private channel\n\n💎 **Free Plan:**\n• 5 downloads daily\n• Videos up to 5 minutes\n• Watermark on video\n\n👑 **VIP Plan:**\n• Unlimited downloads ♾️\n• Any video length ⏱️\n• No watermark 🎨\n• Multiple qualities 4K/HD 📺\n• Priority processing ⚡\n\n📞 **Support:** @YourSupportUsername",
+    
+    "limit_reached": "🚫 **Sorry! Daily limit reached** 😔\n\n📊 You've used **5/5** downloads today\n⏰ Resets tomorrow automatically\n\n💎 **Want unlimited downloads?**\n👑 Subscribe to VIP now!\n\n✨ **VIP Features:**\n♾️ Unlimited downloads\n🎬 Any video length\n🎨 No watermark\n📺 High quality 4K/HD",
+    
+    "subscribe_button_text": "⭐ Subscribe Now - VIP",
+    "subscribe_link": "https://t.me/YourChannelHere",
+    
+    "account_info": "👤 **Your Profile**\n\n🆔 **ID:** `{user_id}`\n💎 **Status:** {subscription_status}\n📊 **Downloads Today:** {downloads_used}/5\n⚡ **Remaining:** {downloads_remaining}\n\n{subscription_details}",
+    
+    "account_free_details": "🆓 **Free Plan**\n\n📥 Daily downloads: 5\n⏱️ Video duration: up to 5 minutes\n🎨 Watermark: Yes\n\n💡 **Upgrade to VIP?** Press /subscribe",
+    
+    "account_pro_details": "👑 **VIP Subscriber**\n\n♾️ Downloads: Unlimited\n⏱️ Video duration: Unlimited\n🎨 No watermark\n📺 High quality\n⚡ Priority processing\n\n✅ **Valid until:** {expiry_date}",
+    
+    "processing": "🔍 **Analyzing...**\n\n⏳ Please wait...",
+    
+    "downloading": "📥 **Download started!**\n\n⚡ Fetching video...",
+    
+    "uploading": "📤 **Final touches...**\n\n🚀 Uploading to you...",
+    
+    "download_failed": "❌ **Download failed!** 😔\n\n🔍 **Possible reasons:**\n• Invalid link\n• Private or deleted video\n• Platform temporarily blocked\n\n💡 **Try:**\n• Check the link\n• Try another link\n• Contact support if problem persists",
+    
+    "unsupported_platform": "⚠️ **Unsupported platform**\n\n😔 Sorry, this platform is not supported yet.\n\n✅ **Supported platforms:**\nYouTube, Instagram, Facebook, TikTok, Twitter, Reddit\n\n📢 Working on adding more platforms soon!",
+    
+    "duration_limit_exceeded": "⏰ **Long video!** 🎬\n\n📏 Video duration: **Longer than {limit} minutes**\n🆓 Free plan: **Up to 5 minutes only**\n\n👑 **Simple solution:**\nSubscribe to VIP for unlimited length!\n\n✨ **VIP Features:**\n♾️ Unlimited video length\n📺 High quality 4K/HD\n🎨 No watermark",
+    
+    "file_too_large": "📦 **Huge size!** 🤯\n\n📊 Video size exceeds **2GB**\n⚠️ Telegram doesn't allow this size\n\n💡 **Try:**\n• Choose lower quality\n• Download shorter video",
+    
+    "error_finding_user": "❌ **Data error**\n\nCouldn't find your data. Please send /start again.",
+    
+    "video_caption": "🎬 **{title}**\n\n👤 {uploader}\n⏱️ {duration} | 📦 {size}\n\n✨ By @{bot_username}",
+    
+    "sub_free": "🆓 Free",
+    "sub_pro": "👑 VIP",
+    
+    "admin_only_command": "🔒 **Forbidden!** Admin only.",
+    
+    "admin_panel_welcome": "⚙️ **Control Panel - Welcome Admin!**\n\n🎛️ Choose from menu:",
+    
+    "stats_button": "📊 Statistics",
+    "broadcast_button": "📢 Broadcast",
+    "upgrade_user_button": "⬆️ Upgrade User",
+    "downgrade_user_button": "⬇️ Downgrade User",
+    "exit_button": "🚪 Exit",
+    
+    "stats_message": "📈 **Bot Statistics**\n\n👥 **Users:**\n• Total: {total_users}\n• VIP Subscribers: {total_subscribers}\n• Active (7 days): {active_7d}\n• Active (30 days): {active_30d}\n\n📥 **Downloads:**\n• Total: {total_downloads}\n\n📅 **Date:** {date}",
+    
+    "broadcast_prompt": "📝 **Send your message now**\n\nI'll send it to all users.",
+    
+    "broadcast_started": "⏳ **Sending...**\n\n📤 Will send to {user_count} users",
+    
+    "broadcast_finished": "✅ **Complete!**\n\n✔️ Success: {sent_count}\n❌ Failed: {failed_count}",
+    
+    "upgrade_prompt": "✨ **Upgrade user**\n\n👤 Send user ID now:",
+    
+    "downgrade_prompt": "🗑️ **Downgrade user**\n\n👤 Send user ID now:",
+    
+    "invalid_user_id": "❌ **Error!** Invalid ID.\nSend numbers only.",
+    
+    "user_not_found": "🤷‍♂️ **User not found!**",
+    
+    "upgrade_success": "✅ **Upgraded!**\n\n👑 User `{user_id}` is now VIP",
+    
+    "downgrade_success": "✅ **Downgraded!**\n\n🆓 User `{user_id}` is now Free",
+    
+    "upgrade_notification": "🎉 **Congrats! You're now VIP!** 👑\n\n✨ **Your new features:**\n♾️ Unlimited downloads\n⏱️ Any video length\n🎨 No watermark\n📺 High quality 4K/HD\n⚡ Priority processing\n\n🚀 Enjoy!",
+    
+    "downgrade_notification": "ℹ️ **Notice**\n\nYour account updated to Free plan.",
+    
+    "exit_admin_panel": "👋 **Exited control panel**",
+    
+    "blocked_domain_message": "🚫 **Blocked content!** 🔞\n\n⚠️ This site is blocked.\n\n✅ Please send link from supported platform.",
+    
+    "adult_content_detected": "🚫 **Inappropriate content!** 🔞\n\n⚠️ Adult content detected\n❌ Cannot process this video\n\n✅ Please send appropriate content.",
+    
+    "processing_video_info": "🎬 **Analyzing video...**\n\n🔍 You sent me a video! Let me check it...",
+    
+    "video_info_result": "✨ **Analysis complete!** 🎉\n\n🎬 **Title:** {title}\n📐 **Dimensions:** {width}x{height}\n⏱️ **Duration:** {duration}\n📦 **Size:** {size}\n🎨 **Quality:** {quality}\n\n📋 **Copy details:**\n`{title}`\n\n📺 Sent copy to my private channel!",
+    
+    "video_info_with_link": "✨ **Video Info** 🎉\n\n🎬 **Title:** {title}\n📐 **Dimensions:** {width}x{height}\n⏱️ **Duration:** {duration}\n📦 **Size:** {size}\n🔗 **Link:** {url}\n\n📋 **Copy:**\n`{title}`\n`{url}`",
+    
+    "title_not_found": "Not available",
+    
+    "video_info_failed": "❌ **Analysis failed**\n\nSorry, couldn't analyze this video.",
+    
+    "quality_selection": "📺 **Choose quality:**\n\n🎬 Video: **{title}**\n⏱️ Duration: **{duration}**",
+    
+    "audio_only": "🎵 Audio only (MP3)",
+    "video_quality_best": "🌟 Best quality",
+    "video_quality_high": "📺 High quality (HD)",
+    "video_quality_medium": "📱 Medium quality",
+    "video_quality_low": "⚡ Low quality (fast)",
+    
+    "download_menu": "📥 **Download Menu**\n\nWhat do you want to do?",
+    "download_video_button": "🎬 Download Video",
+    "my_account_button": "👤 My Account",
+    "help_button": "❓ Help",
+    "subscribe_menu_button": "⭐ Subscribe VIP"
   }
 }
