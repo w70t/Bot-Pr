@@ -6,7 +6,9 @@
 ```bash
 # تحديث النظام
 sudo apt update && sudo apt upgrade -y
-
+#تسغيل البوت 
+source venv/bin/activate
+python bot.py
 # تثبيت Docker
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
