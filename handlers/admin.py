@@ -34,9 +34,15 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ ليس لديك صلاحيات المدير!")
         return ConversationHandler.END
 
+    # جلب حالة اللوجو
+    from database import is_logo_enabled
+    logo_status = is_logo_enabled()
+    logo_text = "✅ مفعّل" if logo_status else "❌ معطّل"
+
     keyboard = [
         [InlineKeyboardButton("📊 الإحصائيات", callback_data="admin_stats")],
         [InlineKeyboardButton("⭐ ترقية عضو", callback_data="admin_upgrade")],
+        [InlineKeyboardButton(f"🎨 اللوجو ({logo_text})", callback_data="admin_logo")],
         [InlineKeyboardButton("👥 قائمة الأعضاء", callback_data="admin_list_users")],
         [InlineKeyboardButton("📢 إرسال رسالة جماعية", callback_data="admin_broadcast")],
         [InlineKeyboardButton("❌ إغلاق", callback_data="admin_close")]
@@ -268,6 +274,58 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     return MAIN_MENU
 
+async def manage_logo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إدارة اللوجو - تفعيل/إيقاف"""
+    query = update.callback_query
+    await query.answer()
+    
+    from database import is_logo_enabled, set_logo_status
+    
+    current_status = is_logo_enabled()
+    status_text = "✅ مفعّل حالياً" if current_status else "❌ معطّل حالياً"
+    
+    text = (
+        f"🎨 **إدارة اللوجو**\n\n"
+        f"الحالة: {status_text}\n\n"
+        f"• عند التفعيل: المستخدمين المجانيين يحصلون على لوجو متحرك ✨\n"
+        f"• عند الإيقاف: لا يُضاف لوجو لأي أحد ⭕\n"
+        f"• VIP دائماً بدون لوجو 💎\n\n"
+        f"اختر الإجراء:"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ تفعيل اللوجو", callback_data="logo_enable")],
+        [InlineKeyboardButton("❌ إيقاف اللوجو", callback_data="logo_disable")],
+        [InlineKeyboardButton("🔙 العودة", callback_data="admin_back")]
+    ]
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
+    
+    return MAIN_MENU
+
+async def toggle_logo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تبديل حالة اللوجو"""
+    query = update.callback_query
+    action = query.data
+    
+    from database import set_logo_status
+    
+    if action == "logo_enable":
+        set_logo_status(True)
+        await query.answer("✅ تم تفعيل اللوجو المتحرك!", show_alert=True)
+    elif action == "logo_disable":
+        set_logo_status(False)
+        await query.answer("❌ تم إيقاف اللوجو!", show_alert=True)
+    
+    # العودة للقائمة الرئيسية
+    return await admin_panel(update, context)
+
 async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء الرسالة الجماعية"""
     query = update.callback_query
@@ -355,6 +413,8 @@ admin_conv_handler = ConversationHandler(
         MAIN_MENU: [
             CallbackQueryHandler(show_statistics, pattern='^admin_stats$'),
             CallbackQueryHandler(upgrade_user_start, pattern='^admin_upgrade$'),
+            CallbackQueryHandler(manage_logo, pattern='^admin_logo$'),
+            CallbackQueryHandler(toggle_logo, pattern='^logo_(enable|disable)$'),
             CallbackQueryHandler(list_users, pattern='^admin_list_users$'),
             CallbackQueryHandler(broadcast_start, pattern='^admin_broadcast$'),
             CallbackQueryHandler(admin_back, pattern='^admin_back$'),
