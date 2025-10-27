@@ -4,7 +4,6 @@ import re
 import logging
 import subprocess
 from telegram import BotCommand, BotCommandScopeChat
-import ffmpeg
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -13,9 +12,7 @@ MESSAGES = {}
 CONFIG = {}
 
 def load_config():
-    """
-    يقوم بتحميل الإعدادات من ملف JSON
-    """
+    """يقوم بتحميل الإعدادات من ملف JSON"""
     global CONFIG
     try:
         with open('config.json', 'r', encoding='utf-8') as f:
@@ -29,9 +26,7 @@ def load_config():
         CONFIG = {}
 
 def load_messages():
-    """
-    يقوم بتحميل الرسائل من ملف JSON
-    """
+    """يقوم بتحميل الرسائل من ملف JSON"""
     global MESSAGES
     try:
         with open('messages.json', 'r', encoding='utf-8') as f:
@@ -45,9 +40,7 @@ def load_messages():
         MESSAGES = {}
 
 def get_message(lang, key, **kwargs):
-    """
-    يجلب رسالة مترجمة بناءً على اللغة والمفتاح
-    """
+    """يجلب رسالة مترجمة بناءً على اللغة والمفتاح"""
     if lang not in MESSAGES:
         lang = 'ar'
     
@@ -62,99 +55,13 @@ def get_message(lang, key, **kwargs):
     return message
 
 def get_config():
-    """
-    يجلب الإعدادات المحملة
-    """
+    """يجلب الإعدادات المحملة"""
     return CONFIG
-
-def apply_watermark(input_path, output_path, logo_path, position='center_right', size=150):
-    """
-    يطبق علامة مائية (لوجو) على الفيديو باستخدام FFmpeg
-    
-    Args:
-        input_path: مسار الفيديو المدخل
-        output_path: مسار الفيديو الناتج
-        logo_path: مسار ملف اللوجو
-        position: موقع اللوجو (center_right = الوسط على اليمين)
-        size: عرض اللوجو بالبكسل
-    
-    Returns:
-        str: مسار الفيديو الناتج إذا نجحت العملية، وإلا input_path
-    """
-    if not os.path.exists(logo_path):
-        logger.error(f"❌ مسار اللوجو غير صحيح: {logo_path}")
-        return input_path
-
-    if not os.path.exists(input_path):
-        logger.error(f"❌ مسار الفيديو المدخل غير صحيح: {input_path}")
-        return input_path
-
-    try:
-        logger.info(f"🎨 بدء إضافة اللوجو للفيديو: {input_path}")
-        
-        # تحديد موضع اللوجو - الوسط على اليمين
-        overlay_positions = {
-            'top_left': '10:10',
-            'top_right': 'W-w-10:10',
-            'bottom_left': '10:H-h-10',
-            'bottom_right': 'W-w-10:H-h-10',
-            'center_right': 'W-w-10:(H-h)/2'  # الوسط على اليمين
-        }
-        overlay_expr = overlay_positions.get(position, 'W-w-10:(H-h)/2')
-
-        # إعداد مدخلات FFmpeg
-        input_video = ffmpeg.input(input_path)
-        input_logo = ffmpeg.input(logo_path)
-
-        # تطبيق الفلتر: تغيير حجم اللوجو ثم وضعه فوق الفيديو
-        logo_scaled = input_logo.filter('scale', size, -1)
-        
-        # دمج اللوجو مع الفيديو
-        stream = ffmpeg.overlay(input_video, logo_scaled, x=overlay_expr.split(':')[0], y=overlay_expr.split(':')[1])
-        
-        # إنشاء الفيديو النهائي
-        stream = ffmpeg.output(
-            stream,
-            input_video.audio,
-            output_path,
-            vcodec='libx264',
-            acodec='aac',
-            audio_bitrate='128k',
-            **{'b:v': '1000k'},
-            preset='veryfast',
-            movflags='faststart',
-            loglevel='error'
-        )
-        
-        # تنفيذ الأمر
-        ffmpeg.run(stream, overwrite_output=True, capture_stdout=True, capture_stderr=True)
-        
-        logger.info(f"✅ تم إضافة اللوجو بنجاح. الملف الجديد: {output_path}")
-        return output_path
-        
-    except ffmpeg.Error as e:
-        error_message = e.stderr.decode('utf8') if e.stderr else str(e)
-        logger.error(f"❌ فشل إضافة اللوجو باستخدام FFmpeg: {error_message}")
-        return input_path
-    except Exception as e:
-        logger.error(f"❌ خطأ غير متوقع في apply_watermark: {e}")
-        return input_path
 
 def apply_animated_watermark(input_path, output_path, logo_path, size=150):
     """
-    يطبق لوجو متحرك متقدم على الفيديو
-    - حركة دائرية حول الفيديو
-    - تأثير fade in/out
-    - تأثير zoom
-    
-    Args:
-        input_path: مسار الفيديو المدخل
-        output_path: مسار الفيديو الناتج
-        logo_path: مسار ملف اللوجو
-        size: عرض اللوجو بالبكسل
-    
-    Returns:
-        str: مسار الفيديو الناتج إذا نجحت العملية، وإلا input_path
+    يطبق لوجو متحرك على الفيديو - حركة من الزوايا
+    استخدام FFmpeg مباشر - أبسط وأسرع
     """
     if not os.path.exists(logo_path):
         logger.error(f"❌ مسار اللوجو غير صحيح: {logo_path}")
@@ -165,131 +72,137 @@ def apply_animated_watermark(input_path, output_path, logo_path, size=150):
         return input_path
 
     try:
-        logger.info(f"✨ بدء إضافة اللوجو المتحرك للفيديو: {input_path}")
+        logger.info(f"✨ بدء إضافة اللوجو المتحرك: {input_path}")
         
-        # الحصول على معلومات الفيديو
-        probe = ffmpeg.probe(input_path)
-        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-        duration = float(probe['format']['duration'])
-        width = int(video_info['width'])
-        height = int(video_info['height'])
+        # حركة من الزوايا الأربع
+        # يتحرك من أعلى يمين → أسفل يمين → أسفل يسار → أعلى يسار → يتكرر
+        cmd = [
+            'ffmpeg',
+            '-i', input_path,
+            '-i', logo_path,
+            '-filter_complex',
+            (
+                f"[1:v]scale={size}:-1,format=rgba[logo];"
+                "[0:v][logo]overlay="
+                "x='if(lt(mod(t\\,20)\\,5)\\, W-w-10-(W-w-20)*(mod(t\\,5)/5)\\, "
+                "if(lt(mod(t\\,20)\\,10)\\, 10\\, "
+                "if(lt(mod(t\\,20)\\,15)\\, 10+(W-w-20)*((mod(t\\,20)-10)/5)\\, W-w-10)))':"
+                "y='if(lt(mod(t\\,20)\\,5)\\, 10\\, "
+                "if(lt(mod(t\\,20)\\,10)\\, 10+(H-h-20)*((mod(t\\,20)-5)/5)\\, "
+                "if(lt(mod(t\\,20)\\,15)\\, H-h-10\\, H-h-10-(H-h-20)*((mod(t\\,20)-15)/5))))'"
+            ),
+            '-c:a', 'copy',
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '23',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ]
         
-        # مدة الدورة الكاملة (10 ثواني)
-        cycle_duration = 10
-        
-        # معادلات الحركة الدائرية مع zoom و fade
-        # الحركة: دائرة حول حواف الفيديو
-        # t = الوقت الحالي
-        # المركز: (width/2, height/2)
-        # نصف القطر: min(width, height) * 0.4
-        
-        radius_x = width * 0.35
-        radius_y = height * 0.35
-        center_x = width / 2
-        center_y = height / 2
-        
-        # معادلات الحركة
-        # x = center_x + radius_x * cos(2*PI*t/cycle_duration) - logo_width/2
-        # y = center_y + radius_y * sin(2*PI*t/cycle_duration) - logo_height/2
-        
-        x_expr = f"{center_x}+{radius_x}*cos(2*PI*t/{cycle_duration})-w/2"
-        y_expr = f"{center_y}+{radius_y}*sin(2*PI*t/{cycle_duration})-h/2"
-        
-        # تأثير zoom (التكبير والتصغير)
-        # يتراوح بين 0.8 و 1.2 من الحجم الأصلي
-        scale_expr = f"{size}*(1+0.2*sin(4*PI*t/{cycle_duration}))"
-        
-        # تأثير fade (الشفافية)
-        # يتراوح بين 0.7 و 1.0
-        alpha_expr = f"0.85+0.15*sin(2*PI*t/{cycle_duration})"
-        
-        # إعداد FFmpeg
-        input_video = ffmpeg.input(input_path)
-        input_logo = ffmpeg.input(logo_path, loop=1, t=duration)
-        
-        # تطبيق المقياس الديناميكي
-        logo_scaled = input_logo.filter('scale', scale_expr, -1)
-        
-        # تطبيق الشفافية
-        logo_alpha = logo_scaled.filter('format', 'rgba').filter('colorchannelmixer', aa=alpha_expr)
-        
-        # تطبيق الحركة
-        stream = ffmpeg.overlay(
-            input_video, 
-            logo_alpha,
-            x=x_expr,
-            y=y_expr,
-            format='auto',
-            shortest=1
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=300
         )
         
-        # الإخراج
-        stream = ffmpeg.output(
-            stream,
-            input_video.audio,
-            output_path,
-            vcodec='libx264',
-            acodec='aac',
-            audio_bitrate='128k',
-            **{'b:v': '1200k'},
-            preset='medium',
-            movflags='faststart',
-            loglevel='error'
-        )
+        if result.returncode == 0 and os.path.exists(output_path):
+            file_size = os.path.getsize(output_path)
+            if file_size > 1000:
+                logger.info(f"✨ نجح اللوجو المتحرك! {file_size/1024/1024:.2f}MB")
+                return output_path
         
-        # تنفيذ
-        ffmpeg.run(stream, overwrite_output=True, capture_stdout=True, capture_stderr=True)
-        
-        logger.info(f"✨ تم إضافة اللوجو المتحرك بنجاح!")
-        return output_path
-        
-    except ffmpeg.Error as e:
-        error_message = e.stderr.decode('utf8') if e.stderr else str(e)
-        logger.error(f"❌ فشل إضافة اللوجو المتحرك: {error_message}")
-        # إذا فشل المتحرك، نرجع للثابت
+        logger.warning(f"⚠️ فشل اللوجو المتحرك، استخدام الثابت...")
         return apply_watermark(input_path, output_path, logo_path)
+            
     except Exception as e:
-        logger.error(f"❌ خطأ غير متوقع في apply_animated_watermark: {e}")
+        logger.error(f"❌ خطأ في اللوجو المتحرك: {e}")
         return apply_watermark(input_path, output_path, logo_path)
 
+def apply_watermark(input_path, output_path, logo_path, position='center_right', size=150):
+    """
+    يطبق لوجو ثابت على الفيديو (احتياطي)
+    """
+    if not os.path.exists(logo_path):
+        logger.error(f"❌ مسار اللوجو غير صحيح: {logo_path}")
+        return input_path
+
+    if not os.path.exists(input_path):
+        logger.error(f"❌ مسار الفيديو المدخل غير صحيح: {input_path}")
+        return input_path
+
+    try:
+        logger.info(f"🎨 إضافة لوجو ثابت: {input_path}")
+        
+        # مواضع بسيطة
+        positions = {
+            'top_left': '10:10',
+            'top_right': f'W-{size}-10:10',
+            'bottom_left': f'10:H-{int(size*0.67)}-10',
+            'bottom_right': f'W-{size}-10:H-{int(size*0.67)}-10',
+            'center_right': f'W-{size}-10:(H-{int(size*0.67)})/2'
+        }
+        
+        pos = positions.get(position, positions['center_right'])
+        
+        cmd = [
+            'ffmpeg',
+            '-i', input_path,
+            '-i', logo_path,
+            '-filter_complex',
+            f'[1:v]scale={size}:-1[logo];[0:v][logo]overlay={pos}',
+            '-c:a', 'copy',
+            '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '23',
+            '-y',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        
+        if result.returncode == 0 and os.path.exists(output_path):
+            logger.info(f"✅ نجح اللوجو الثابت")
+            return output_path
+        else:
+            logger.error(f"❌ فشل اللوجو الثابت")
+            return input_path
+        
+    except Exception as e:
+        logger.error(f"❌ خطأ: {e}")
+        return input_path
+
 async def setup_bot_menu(bot):
-    """
-    يقوم بإعداد قائمة الأوامر (Menu) للبوت
-    """
+    """يقوم بإعداد قائمة الأوامر (Menu) للبوت"""
     logger.info("📋 إعداد قائمة أوامر البوت...")
     
     if not MESSAGES:
         load_messages()
     
-    # الأوامر العامة (باللغة العربية)
     user_commands_ar = [
         BotCommand("start", get_message('ar', 'start_command_desc')),
         BotCommand("account", get_message('ar', 'account_command_desc')),
         BotCommand("help", get_message('ar', 'help_command_desc')),
     ]
     
-    # الأوامر العامة (باللغة الإنجليزية)
     user_commands_en = [
         BotCommand("start", get_message('en', 'start_command_desc')),
         BotCommand("account", get_message('en', 'account_command_desc')),
         BotCommand("help", get_message('en', 'help_command_desc')),
     ]
     
-    # أوامر المدير (باللغة العربية)
     admin_commands_ar = user_commands_ar + [
         BotCommand("admin", get_message('ar', 'admin_command_desc')),
     ]
     
-    # أوامر المدير (باللغة الإنجليزية)
     admin_commands_en = user_commands_en + [
         BotCommand("admin", get_message('en', 'admin_command_desc')),
     ]
 
-    # تعيين الأوامر الافتراضية
     await bot.set_my_commands(user_commands_ar)
     logger.info("✅ تم تعيين قائمة الأوامر العامة.")
     
-    # تعيين الأوامر للمدراء
     admin_ids_str = os.getenv("ADMIN_ID", "")
     admin_ids = [int(admin_id) for admin_id in admin_ids_str.split(',') if admin_id.strip()]
     
@@ -301,25 +214,19 @@ async def setup_bot_menu(bot):
             logger.error(f"❌ فشل تعيين أوامر للمدير {admin_id}: {e}")
 
 def clean_filename(filename):
-    """
-    يزيل الأحرف غير الصالحة من أسماء الملفات
-    """
+    """يزيل الأحرف غير الصالحة من أسماء الملفات"""
     cleaned = re.sub(r'[\\/*?:"<>|]', "", filename)
     if len(cleaned) > 200:
         cleaned = cleaned[:200]
     return cleaned
 
 def escape_markdown(text: str) -> str:
-    """
-    يقوم بتهريب الأحرف الخاصة في MarkdownV2
-    """
+    """يقوم بتهريب الأحرف الخاصة في MarkdownV2"""
     escape_chars = r'_*[]()~`>#+-=|{}.!'
     return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
 
 def format_file_size(size_bytes):
-    """
-    تحويل حجم الملف من bytes إلى صيغة قابلة للقراءة
-    """
+    """تحويل حجم الملف من bytes إلى صيغة قابلة للقراءة"""
     if not size_bytes:
         return "غير معروف"
     
@@ -330,9 +237,7 @@ def format_file_size(size_bytes):
     return f"{size_bytes:.2f} TB"
 
 def format_duration(seconds):
-    """
-    تحويل المدة من ثواني إلى صيغة قابلة للقراءة (HH:MM:SS)
-    """
+    """تحويل المدة من ثواني إلى صيغة قابلة للقراءة (HH:MM:SS)"""
     if not seconds:
         return "00:00"
     
@@ -345,33 +250,8 @@ def format_duration(seconds):
     else:
         return f"{minutes:02d}:{secs:02d}"
 
-def get_video_info(file_path):
-    """
-    جلب معلومات الفيديو باستخدام FFprobe
-    
-    Returns:
-        dict: معلومات الفيديو (width, height, duration, codec, etc.)
-    """
-    try:
-        probe = ffmpeg.probe(file_path)
-        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-        
-        return {
-            'width': int(video_info.get('width', 0)),
-            'height': int(video_info.get('height', 0)),
-            'duration': float(probe['format'].get('duration', 0)),
-            'size': int(probe['format'].get('size', 0)),
-            'codec': video_info.get('codec_name', 'unknown'),
-            'bitrate': int(probe['format'].get('bit_rate', 0))
-        }
-    except Exception as e:
-        logger.error(f"❌ فشل جلب معلومات الفيديو: {e}")
-        return None
-
 def validate_url(url: str) -> bool:
-    """
-    التحقق من صحة الرابط
-    """
+    """التحقق من صحة الرابط"""
     url_pattern = re.compile(
         r'^https?://'
         r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
@@ -381,6 +261,5 @@ def validate_url(url: str) -> bool:
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return url_pattern.match(url) is not None
 
-# قم بتحميل الرسائل والإعدادات عند بدء تشغيل الوحدة
 load_config()
 load_messages()
