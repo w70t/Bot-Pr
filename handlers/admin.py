@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     ContextTypes,
@@ -32,7 +33,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     """
     user_id = update.message.from_user.id
     if not is_admin(user_id):
-        await update.message.reply_text("🔒 هذا الأمر مخصص للمدير فقط.")
+        await update.message.reply_text("🔒 هذا الأمر مخصص للمدراء فقط.")
         return ConversationHandler.END
 
     lang = get_user_language(user_id)
@@ -47,6 +48,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await update.message.reply_text(
         get_message(lang, "admin_panel_welcome"),
         reply_markup=reply_markup,
+        parse_mode='Markdown'
     )
     return ADMIN_MENU
 
@@ -134,14 +136,15 @@ async def show_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     active_users_7d = get_active_users_count(7)
     active_users_30d = get_active_users_count(30)
     
-    stats_message = (
-        f"📈 **إحصائيات البوت الشاملة**\n\n"
-        f"👥 **إجمالي المستخدمين:** {total_users}\n"
-        f"💎 **المشتركين (VIP):** {total_subscribers}\n"
-        f"📥 **إجمالي التحميلات:** {total_downloads}\n\n"
-        f"📊 **المستخدمين النشطين:**\n"
-        f"   • آخر 7 أيام: {active_users_7d}\n"
-        f"   • آخر 30 يوم: {active_users_30d}"
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    stats_message = get_message(lang, "stats_message").format(
+        total_users=total_users,
+        total_subscribers=total_subscribers,
+        active_7d=active_users_7d,
+        active_30d=active_users_30d,
+        total_downloads=total_downloads,
+        date=current_date
     )
     
     await update.message.reply_text(stats_message, parse_mode=ParseMode.MARKDOWN)
