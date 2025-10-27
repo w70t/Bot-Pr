@@ -14,7 +14,7 @@ from database import (
     is_admin,
     get_daily_download_count
 )
-from utils import get_message, clean_filename, get_config, apply_watermark, format_file_size, format_duration
+from utils import get_message, clean_filename, get_config, format_file_size, format_duration
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -162,7 +162,6 @@ async def show_quality_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, 
         'info': info_dict
     }
     
-    # قائمة مبسطة - 3 أزرار فقط
     keyboard = [
         [InlineKeyboardButton("🌟 أفضل جودة", callback_data="quality_best")],
         [InlineKeyboardButton("📱 جودة متوسطة (أسرع)", callback_data="quality_medium")],
@@ -203,42 +202,102 @@ async def handle_quality_selection(update: Update, context: ContextTypes.DEFAULT
     
     await download_video_with_quality(update, context, url, info_dict, quality_choice)
 
-async def download_video_with_quality(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, info_dict: dict, quality: str):
-    """تحميل الفيديو بالجودة المحددة - محسّن للسرعة"""
-    user = update.effective_user
-    user_id = user.id
-    lang = get_user_language(user_id)
+def get_ydl_opts_for_platform(url: str, quality: str = 'best'):
+    """
+    إعدادات yt-dlp محسّنة حسب المنصة
+    """
+    # تحديد المنصة
+    is_facebook = 'facebook.com' in url or 'fb.watch' in url or 'fb.com' in url
+    is_instagram = 'instagram.com' in url
+    is_tiktok = 'tiktok.com' in url
     
-    # إعدادات محسّنة للسرعة
+    # الجودة
     quality_formats = {
-        'best': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',  # حد أقصى 1080p
-        'medium': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
+        'best': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]/best',
+        'medium': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
         'audio': 'bestaudio/best'
     }
     
     format_choice = quality_formats.get(quality, 'best')
     
+    # إعدادات أساسية
     ydl_opts = {
         'format': format_choice,
         'outtmpl': os.path.join(VIDEO_PATH, '%(title)s.%(ext)s'),
-        'quiet': True,
-        'no_warnings': True,
+        'quiet': False,
+        'no_warnings': False,
         'extract_flat': False,
-        'ignoreerrors': True,
+        'ignoreerrors': False,
+        'nocheckcertificate': True,
         # تحسينات السرعة
-        'concurrent_fragment_downloads': 5,  # تحميل متعدد
-        'retries': 3,
-        'fragment_retries': 3,
-        'http_chunk_size': 10485760,  # 10MB chunks
-        'buffersize': 1024 * 512,  # 512KB buffer
+        'concurrent_fragment_downloads': 5,
+        'retries': 10,
+        'fragment_retries': 10,
+        'http_chunk_size': 10485760,
+        'buffersize': 1024 * 512,
     }
     
+    # إعدادات خاصة لـ Facebook
+    if is_facebook:
+        ydl_opts.update({
+            'format': 'best',  # Facebook يحتاج 'best' فقط
+            'extractor_args': {
+                'facebook': {
+                    'timeout': 60
+                }
+            },
+            # User-Agent مهم لـ Facebook
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Sec-Fetch-Mode': 'navigate',
+            }
+        })
+    
+    # إعدادات خاصة لـ Instagram
+    elif is_instagram:
+        ydl_opts.update({
+            'format': 'best',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'X-IG-App-ID': '936619743392459',
+            },
+            'extractor_args': {
+                'instagram': {
+                    'timeout': 60
+                }
+            }
+        })
+    
+    # إعدادات خاصة لـ TikTok
+    elif is_tiktok:
+        ydl_opts.update({
+            'format': 'best',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+        })
+    
+    # إعدادات الصوت
     if quality == 'audio':
         ydl_opts['postprocessors'] = [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }]
+    
+    return ydl_opts
+
+async def download_video_with_quality(update: Update, context: ContextTypes.DEFAULT_TYPE, url: str, info_dict: dict, quality: str):
+    """تحميل الفيديو بالجودة المحددة"""
+    user = update.effective_user
+    user_id = user.id
+    lang = get_user_language(user_id)
+    
+    ydl_opts = get_ydl_opts_for_platform(url, quality)
     
     await perform_download(update, context, url, info_dict, ydl_opts, is_audio=(quality=='audio'))
 
@@ -286,14 +345,13 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         
         logger.info(f"✅ تم التحميل: {new_filepath}")
         
-        # التحقق من حالة اللوجو والمستخدم
+        # التحقق من حالة اللوجو
         from database import is_logo_enabled
         logo_enabled = is_logo_enabled()
         
         logo_path = config.get("LOGO_PATH")
         final_video_path = new_filepath
         
-        # تطبيق اللوجو حسب الحالة
         if not is_audio and logo_enabled and not is_subscribed_user and not is_user_admin and logo_path and os.path.exists(logo_path):
             from utils import apply_animated_watermark
             
@@ -302,7 +360,7 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
             
             if result_path != new_filepath and os.path.exists(result_path):
                 final_video_path = result_path
-                logger.info(f"✨ تم تطبيق اللوجو المتحرك بنجاح!")
+                logger.info(f"✨ تم تطبيق اللوجو المتحرك")
         
         file_size = os.path.getsize(final_video_path)
         total_mb = file_size / (1024 * 1024)
@@ -391,7 +449,7 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
         
     except Exception as e:
         logger.error(f"❌ خطأ: {e}", exc_info=True)
-        error_text = f"❌ فشل التحميل!\n\n{str(e)[:200]}"
+        error_text = f"❌ فشل التحميل!\n\nتأكد من أن الرابط صحيح ويمكن الوصول إليه."
         
         try:
             await processing_message.edit_text(error_text)
@@ -447,20 +505,9 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
     processing_message = await update.message.reply_text("🔍 جاري التحليل...")
     
     try:
-        # إعدادات محسّنة لدعم Facebook وجميع المنصات
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
-            'extract_flat': False,
-            'ignoreerrors': True,
-            # دعم خاص لـ Facebook
-            'cookiefile': None,
-            'extractor_args': {
-                'facebook': {
-                    'timeout': 30
-                }
-            }
-        }
+        # إعدادات التحليل
+        ydl_opts = get_ydl_opts_for_platform(url)
+        ydl_opts['skip_download'] = True  # فقط للتحليل
         
         loop = asyncio.get_event_loop()
         
@@ -474,7 +521,7 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await processing_message.edit_text("🚫 محتوى محظور!")
             return
         
-        max_free_duration = config.get("MAX_FREE_DURATION", 600)  # 10 دقائق بدلاً من 5
+        max_free_duration = config.get("MAX_FREE_DURATION", 600)
         if not is_user_admin and not is_subscribed_user and duration and duration > max_free_duration:
             keyboard = [[InlineKeyboardButton(
                 "⭐ اشترك الآن",
@@ -492,5 +539,32 @@ async def handle_download(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_quality_menu(update, context, url, info_dict)
         
     except Exception as e:
-        logger.error(f"❌ خطأ: {e}")
-        await processing_message.edit_text(f"❌ فشل التحليل!\n\nتأكد من الرابط وحاول مرة أخرى.")
+        logger.error(f"❌ خطأ في التحليل: {e}", exc_info=True)
+        error_msg = str(e)
+        
+        # رسائل خطأ مخصصة
+        if 'private' in error_msg.lower() or 'login' in error_msg.lower():
+            await processing_message.edit_text(
+                "❌ الفيديو خاص أو يحتاج تسجيل دخول!\n\n"
+                "💡 تأكد من أن الفيديو عام ويمكن للجميع مشاهدته."
+            )
+        elif 'unavailable' in error_msg.lower():
+            await processing_message.edit_text(
+                "❌ الفيديو غير متاح أو تم حذفه!"
+            )
+        elif 'geo' in error_msg.lower():
+            await processing_message.edit_text(
+                "❌ الفيديو محظور جغرافياً في هذه المنطقة!"
+            )
+        else:
+            await processing_message.edit_text(
+                f"❌ فشل التحليل!\n\n"
+                f"تأكد من أن الرابط صحيح ويمكن الوصول إليه.\n\n"
+                f"المنصات المدعومة:\n"
+                f"✅ YouTube\n"
+                f"✅ Facebook\n"
+                f"✅ Instagram\n"
+                f"✅ TikTok\n"
+                f"✅ Twitter/X\n"
+                f"✅ +1000 موقع آخر"
+            )
