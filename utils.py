@@ -140,6 +140,118 @@ def apply_watermark(input_path, output_path, logo_path, position='center_right',
         logger.error(f"❌ خطأ غير متوقع في apply_watermark: {e}")
         return input_path
 
+def apply_animated_watermark(input_path, output_path, logo_path, size=150):
+    """
+    يطبق لوجو متحرك متقدم على الفيديو
+    - حركة دائرية حول الفيديو
+    - تأثير fade in/out
+    - تأثير zoom
+    
+    Args:
+        input_path: مسار الفيديو المدخل
+        output_path: مسار الفيديو الناتج
+        logo_path: مسار ملف اللوجو
+        size: عرض اللوجو بالبكسل
+    
+    Returns:
+        str: مسار الفيديو الناتج إذا نجحت العملية، وإلا input_path
+    """
+    if not os.path.exists(logo_path):
+        logger.error(f"❌ مسار اللوجو غير صحيح: {logo_path}")
+        return input_path
+
+    if not os.path.exists(input_path):
+        logger.error(f"❌ مسار الفيديو المدخل غير صحيح: {input_path}")
+        return input_path
+
+    try:
+        logger.info(f"✨ بدء إضافة اللوجو المتحرك للفيديو: {input_path}")
+        
+        # الحصول على معلومات الفيديو
+        probe = ffmpeg.probe(input_path)
+        video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+        duration = float(probe['format']['duration'])
+        width = int(video_info['width'])
+        height = int(video_info['height'])
+        
+        # مدة الدورة الكاملة (10 ثواني)
+        cycle_duration = 10
+        
+        # معادلات الحركة الدائرية مع zoom و fade
+        # الحركة: دائرة حول حواف الفيديو
+        # t = الوقت الحالي
+        # المركز: (width/2, height/2)
+        # نصف القطر: min(width, height) * 0.4
+        
+        radius_x = width * 0.35
+        radius_y = height * 0.35
+        center_x = width / 2
+        center_y = height / 2
+        
+        # معادلات الحركة
+        # x = center_x + radius_x * cos(2*PI*t/cycle_duration) - logo_width/2
+        # y = center_y + radius_y * sin(2*PI*t/cycle_duration) - logo_height/2
+        
+        x_expr = f"{center_x}+{radius_x}*cos(2*PI*t/{cycle_duration})-w/2"
+        y_expr = f"{center_y}+{radius_y}*sin(2*PI*t/{cycle_duration})-h/2"
+        
+        # تأثير zoom (التكبير والتصغير)
+        # يتراوح بين 0.8 و 1.2 من الحجم الأصلي
+        scale_expr = f"{size}*(1+0.2*sin(4*PI*t/{cycle_duration}))"
+        
+        # تأثير fade (الشفافية)
+        # يتراوح بين 0.7 و 1.0
+        alpha_expr = f"0.85+0.15*sin(2*PI*t/{cycle_duration})"
+        
+        # إعداد FFmpeg
+        input_video = ffmpeg.input(input_path)
+        input_logo = ffmpeg.input(logo_path, loop=1, t=duration)
+        
+        # تطبيق المقياس الديناميكي
+        logo_scaled = input_logo.filter('scale', scale_expr, -1)
+        
+        # تطبيق الشفافية
+        logo_alpha = logo_scaled.filter('format', 'rgba').filter('colorchannelmixer', aa=alpha_expr)
+        
+        # تطبيق الحركة
+        stream = ffmpeg.overlay(
+            input_video, 
+            logo_alpha,
+            x=x_expr,
+            y=y_expr,
+            format='auto',
+            shortest=1
+        )
+        
+        # الإخراج
+        stream = ffmpeg.output(
+            stream,
+            input_video.audio,
+            output_path,
+            vcodec='libx264',
+            acodec='aac',
+            audio_bitrate='128k',
+            **{'b:v': '1200k'},
+            preset='medium',
+            movflags='faststart',
+            loglevel='error'
+        )
+        
+        # تنفيذ
+        ffmpeg.run(stream, overwrite_output=True, capture_stdout=True, capture_stderr=True)
+        
+        logger.info(f"✨ تم إضافة اللوجو المتحرك بنجاح!")
+        return output_path
+        
+    except ffmpeg.Error as e:
+        error_message = e.stderr.decode('utf8') if e.stderr else str(e)
+        logger.error(f"❌ فشل إضافة اللوجو المتحرك: {error_message}")
+        # إذا فشل المتحرك، نرجع للثابت
+        return apply_watermark(input_path, output_path, logo_path)
+    except Exception as e:
+        logger.error(f"❌ خطأ غير متوقع في apply_animated_watermark: {e}")
+        return apply_watermark(input_path, output_path, logo_path)
+
 async def setup_bot_menu(bot):
     """
     يقوم بإعداد قائمة الأوامر (Menu) للبوت
