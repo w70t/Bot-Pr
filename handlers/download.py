@@ -1,6 +1,7 @@
 import os
 import asyncio
 import time
+import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import yt_dlp
@@ -209,7 +210,7 @@ def get_ydl_opts_for_platform(url: str, quality: str = 'best'):
     # تحديد المنصة
     is_facebook = 'facebook.com' in url or 'fb.watch' in url or 'fb.com' in url
     is_instagram = 'instagram.com' in url
-    is_tiktok = 'tiktok.com' in url
+    is_tiktok = 'tiktok.com' in url or 'vm.tiktok.com' in url or 'vt.tiktok.com' in url
     
     # الجودة
     quality_formats = {
@@ -272,12 +273,21 @@ def get_ydl_opts_for_platform(url: str, quality: str = 'best'):
             }
         })
     
-    # إعدادات خاصة لـ TikTok
+    # إعدادات خاصة لـ TikTok - مُحسّنة للصور والفيديوهات
     elif is_tiktok:
         ydl_opts.update({
             'format': 'best',
+            # إعدادات مهمة لتيك توك
+            'writesubtitles': False,
+            'writethumbnail': False,
             'http_headers': {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': 'https://www.tiktok.com/',
+            },
+            'extractor_args': {
+                'tiktok': {
+                    'api_hostname': 'api16-normal-c-useast1a.tiktokv.com'
+                }
             }
         })
     
@@ -319,7 +329,165 @@ async def perform_download(update: Update, context: ContextTypes.DEFAULT_TYPE, u
     new_filepath = None
     temp_watermarked_path = None
     
+    # التحقق إذا كان المحتوى صورة وليس فيديو
+    is_image_post = False
+    
+    # طريقة 1: فحص duration - إذا كانت 0 قد يكون صور
+    duration = info_dict.get('duration', None)
+    
+    # طريقة 2: فحص الصيغ المتاحة
+    if 'formats' in info_dict and info_dict.get('formats'):
+        has_video = any('vcodec' in fmt and fmt.get('vcodec') != 'none' 
+                       for fmt in info_dict['formats'])
+        has_image = any('ext' in fmt and fmt.get('ext') in ['jpg', 'jpeg', 'png', 'webp'] 
+                       for fmt in info_dict['formats'])
+        
+        # إذا كان فيه صور وما فيه فيديو = منشور صور
+        if has_image and not has_video:
+            is_image_post = True
+            logger.info("✅ تم اكتشاف منشور صور")
+    
+    # طريقة 3: فحص نوع الملف في thumbnail أو entries
+    if not is_image_post and 'entries' in info_dict:
+        # بعض المنصات تضع الصور في entries
+        entries = info_dict.get('entries', [])
+        if entries and all(e.get('ext') in ['jpg', 'jpeg', 'png', 'webp'] for e in entries if e):
+            is_image_post = True
+            logger.info("✅ تم اكتشاف صور في entries")
+    
+    # طريقة 4: فحص خاص لتيك توك
+    url_lower = url.lower()
+    if 'tiktok.com' in url_lower and duration == 0:
+        is_image_post = True
+        logger.info("✅ تيك توك بدون مدة - احتمال صور")
+    
     try:
+        # إذا كان منشور صور من تيك توك أو انستقرام
+        if is_image_post:
+            await processing_message.edit_text("📷 اكتشفت صوراً! جاري التحميل...")
+            
+            loop = asyncio.get_event_loop()
+            
+            # إعداد خاص للصور - نضيف write_all_thumbnails لتيك توك
+            image_ydl_opts = ydl_opts.copy()
+            image_ydl_opts.update({
+                'writethumbnail': True,
+                'write_all_thumbnails': True,
+                'skip_download': False,
+            })
+            
+            # تحميل الصور
+            try:
+                with yt_dlp.YoutubeDL(image_ydl_opts) as ydl:
+                    await loop.run_in_executor(None, lambda: ydl.download([url]))
+                logger.info("✅ تم تحميل المحتوى من yt-dlp")
+            except Exception as e:
+                logger.error(f"❌ خطأ في تحميل الصور: {e}")
+                raise
+            
+            # البحث عن الصور المحملة
+            image_files = []
+            current_time = time.time()
+            
+            for file in os.listdir(VIDEO_PATH):
+                file_path = os.path.join(VIDEO_PATH, file)
+                # التحقق أنها صورة ومحملة حديثاً (آخر دقيقة)
+                if (file.endswith(('.jpg', '.jpeg', '.png', '.webp')) and 
+                    os.path.isfile(file_path) and 
+                    os.path.getmtime(file_path) > (current_time - 60)):
+                    image_files.append(file_path)
+            
+            logger.info(f"📸 تم العثور على {len(image_files)} صورة")
+            
+            if not image_files:
+                # محاولة بديلة: تحميل thumbnail كصورة
+                logger.warning("⚠️ لم يتم العثور على صور، محاولة تحميل thumbnail...")
+                thumbnail_url = info_dict.get('thumbnail')
+                if thumbnail_url:
+                    try:
+                        import requests
+                        response = requests.get(thumbnail_url, timeout=10)
+                        if response.status_code == 200:
+                            thumb_path = os.path.join(VIDEO_PATH, f"thumbnail_{int(time.time())}.jpg")
+                            with open(thumb_path, 'wb') as f:
+                                f.write(response.content)
+                            image_files.append(thumb_path)
+                            logger.info("✅ تم تحميل thumbnail كصورة")
+                    except Exception as e:
+                        logger.error(f"❌ فشل تحميل thumbnail: {e}")
+            
+            if not image_files:
+                raise FileNotFoundError("لم يتم العثور على صور محملة")
+            
+            title = info_dict.get('title', 'صور')
+            uploader = info_dict.get('uploader', 'Unknown')[:40]
+            
+            # إرسال الصور للمستخدم
+            await processing_message.edit_text(f"📤 جاري رفع {len(image_files)} صورة...")
+            
+            caption_text = (
+                f"📷 {title[:50]}\n\n"
+                f"👤 {uploader}\n"
+                f"🖼️ عدد الصور: {len(image_files)}\n"
+                f"{'💎 VIP' if is_subscribed_user else '🆓 مجاني'}\n\n"
+                f"✨ بواسطة @{context.bot.username}"
+            )
+            
+            # إرسال الصور (واحدة تلو الأخرى أو كمجموعة)
+            if len(image_files) == 1:
+                with open(image_files[0], 'rb') as photo:
+                    await context.bot.send_photo(
+                        chat_id=update.effective_chat.id,
+                        photo=photo,
+                        caption=caption_text[:1024],
+                        reply_to_message_id=update.effective_message.message_id
+                    )
+            else:
+                # إرسال كمجموعة (MediaGroup)
+                from telegram import InputMediaPhoto
+                media_group = []
+                
+                for idx, img_path in enumerate(image_files[:10]):  # تيليجرام يسمح بـ 10 صور كحد أقصى
+                    with open(img_path, 'rb') as photo:
+                        if idx == 0:
+                            media_group.append(InputMediaPhoto(media=photo.read(), caption=caption_text[:1024]))
+                        else:
+                            media_group.append(InputMediaPhoto(media=photo.read()))
+                
+                await context.bot.send_media_group(
+                    chat_id=update.effective_chat.id,
+                    media=media_group,
+                    reply_to_message_id=update.effective_message.message_id
+                )
+            
+            logger.info(f"✅ تم إرسال {len(image_files)} صورة")
+            
+            try:
+                await processing_message.delete()
+            except:
+                pass
+            
+            # تحديث عداد التحميلات
+            if not is_user_admin and not is_subscribed_user:
+                increment_download_count(user_id)
+                remaining = FREE_USER_DOWNLOAD_LIMIT - get_daily_download_count(user_id)
+                if remaining > 0:
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=f"ℹ️ تبقى لك {remaining} تحميلات مجانية اليوم"
+                    )
+            
+            # حذف الصور المؤقتة
+            for img_file in image_files:
+                try:
+                    os.remove(img_file)
+                    logger.info(f"🗑️ تم حذف: {img_file}")
+                except Exception as e:
+                    logger.error(f"❌ فشل حذف الصورة: {e}")
+            
+            return
+        
+        # إذا كان فيديو عادي - الكود القديم
         loop = asyncio.get_event_loop()
         
         progress_tracker = DownloadProgressTracker(processing_message, lang)
