@@ -110,9 +110,13 @@ async def upgrade_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
     
     text = (
-        "⭐ **ترقية عضو إلى VIP**\n\n"
-        "أرسل معرف المستخدم (User ID) الذي تريد ترقيته:\n\n"
-        "💡 يمكنك الحصول على المعرف من:\n"
+        "⭐ ترقية عضو إلى VIP\n\n"
+        "أرسل أحد التالي:\n\n"
+        "1️⃣ User ID (رقم):\n"
+        "   مثال: 123456789\n\n"
+        "2️⃣ Username:\n"
+        "   مثال: @username أو username\n\n"
+        "💡 يمكنك الحصول على User ID من:\n"
         "• معلومات الحساب\n"
         "• رسائل السجل في القناة\n"
         "• أمر /account من المستخدم"
@@ -123,27 +127,58 @@ async def upgrade_user_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     await query.edit_message_text(
         text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return AWAITING_USER_ID
 
 async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """استقبال معرف المستخدم"""
-    try:
-        user_id = int(update.message.text.strip())
-    except ValueError:
-        await update.message.reply_text("❌ معرف غير صحيح! أرسل رقم صحيح.")
-        return AWAITING_USER_ID
+    """استقبال معرف المستخدم أو اليوزر نيم"""
+    user_input = update.message.text.strip()
+    user_id = None
+    user_data = None
     
-    user_data = get_user(user_id)
-    if not user_data:
-        await update.message.reply_text(
-            "❌ المستخدم غير موجود في قاعدة البيانات!\n"
-            "تأكد من أن المستخدم قام بإرسال /start للبوت."
-        )
-        return AWAITING_USER_ID
+    # محاولة التعامل مع Username
+    if user_input.startswith('@') or not user_input.isdigit():
+        username = user_input.replace('@', '')  # إزالة @ إذا وجدت
+        
+        # البحث عن المستخدم بالـ username
+        all_users = get_all_users()
+        for user in all_users:
+            if user.get('username') == username:
+                user_id = user.get('user_id')
+                user_data = user
+                break
+        
+        if not user_id:
+            await update.message.reply_text(
+                f"❌ لم أجد مستخدم بالـ username: {username}\n\n"
+                f"💡 تأكد من:\n"
+                f"• اليوزر نيم صحيح\n"
+                f"• المستخدم أرسل /start للبوت"
+            )
+            return AWAITING_USER_ID
+    
+    # محاولة التعامل مع User ID
+    else:
+        try:
+            user_id = int(user_input)
+            user_data = get_user(user_id)
+        except ValueError:
+            await update.message.reply_text(
+                "❌ خطأ في الإدخال!\n\n"
+                "أرسل:\n"
+                "• User ID (رقم): مثال 123456789\n"
+                "• أو Username: مثال @username"
+            )
+            return AWAITING_USER_ID
+        
+        if not user_data:
+            await update.message.reply_text(
+                "❌ المستخدم غير موجود في قاعدة البيانات!\n"
+                "تأكد من أن المستخدم قام بإرسال /start للبوت."
+            )
+            return AWAITING_USER_ID
     
     context.user_data['upgrade_target_id'] = user_id
     
@@ -153,7 +188,7 @@ async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         f"✅ تم العثور على المستخدم:\n\n"
         f"👤 الاسم: {user_name}\n"
-        f"🆔 المعرف: `{user_id}`\n"
+        f"🆔 المعرف: {user_id}\n"
         f"🔗 اليوزر: @{username if username != 'لا يوجد' else 'غير متوفر'}\n\n"
         f"📅 أرسل عدد الأيام للاشتراك:\n"
         f"مثال: 30 (شهر) | 365 (سنة)"
@@ -164,8 +199,7 @@ async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(
         text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return AWAITING_DAYS
@@ -193,39 +227,37 @@ async def receive_days(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_name = user_data.get('full_name', 'المستخدم')
         
         success_text = (
-            f"✅ **تمت الترقية بنجاح!**\n\n"
+            f"✅ تمت الترقية بنجاح!\n\n"
             f"👤 المستخدم: {user_name}\n"
-            f"🆔 المعرف: `{user_id}`\n"
+            f"🆔 المعرف: {user_id}\n"
             f"📅 المدة: {days} يوم\n"
             f"⏰ تنتهي في: {subscription_end.strftime('%Y-%m-%d')}\n\n"
             f"🎉 تم إرسال إشعار للمستخدم"
         )
         
-        await update.message.reply_text(
-            success_text,
-            parse_mode='Markdown'
-        )
+        await update.message.reply_text(success_text)
         
-        # إرسال إشعار للمستخدم مع رسالة wahab161@
+        # إرسال إشعار للمستخدم
         try:
             notification_text = (
-                f"🎉 **مبروك! تمت ترقيتك إلى VIP**\n\n"
+                f"🎉 مبروك! تمت ترقيتك إلى VIP\n\n"
                 f"⭐ مدة الاشتراك: {days} يوم\n"
                 f"📅 ينتهي في: {subscription_end.strftime('%Y-%m-%d')}\n\n"
                 f"✨ الآن يمكنك:\n"
-                f"• تحميل بلا حدود\n"
-                f"• فيديوهات بدون لوجو\n"
-                f"• أولوية في المعالجة\n\n"
-                f"💎 شكراً لك wahab161@"
+                f"• تحميل بلا حدود ♾️\n"
+                f"• فيديوهات بدون لوجو 🎨\n"
+                f"• جودات عالية 4K/HD 📺\n"
+                f"• أولوية في المعالجة ⚡\n\n"
+                f"💎 شكراً لاشتراكك معنا!"
             )
             
             await context.bot.send_message(
                 chat_id=user_id,
-                text=notification_text,
-                parse_mode='Markdown'
+                text=notification_text
             )
+            logger.info(f"✅ تم إرسال إشعار الترقية للمستخدم {user_id}")
         except Exception as e:
-            logger.error(f"فشل إرسال الإشعار: {e}")
+            logger.error(f"⚠️ فشل إرسال الإشعار للمستخدم {user_id}: {e}")
         
         del context.user_data['upgrade_target_id']
         
@@ -253,7 +285,7 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("📭 لا يوجد مستخدمين حالياً")
         return MAIN_MENU
     
-    users_text = "👥 **قائمة المستخدمين** (آخر 20)\n\n"
+    users_text = "👥 قائمة المستخدمين (آخر 20)\n\n"
     
     for idx, user in enumerate(all_users[-20:], 1):
         user_id = user.get('user_id')
@@ -261,15 +293,14 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = user.get('username', 'لا يوجد')
         is_vip = "⭐" if user.get('subscription_end') else "🆓"
         
-        users_text += f"{idx}. {is_vip} `{user_id}` - {name}\n"
+        users_text += f"{idx}. {is_vip} {user_id} - {name}\n"
     
     keyboard = [[InlineKeyboardButton("🔙 العودة", callback_data="admin_back")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     await query.edit_message_text(
         users_text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return MAIN_MENU
@@ -285,7 +316,7 @@ async def manage_logo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     status_text = "✅ مفعّل حالياً" if current_status else "❌ معطّل حالياً"
     
     text = (
-        f"🎨 **إدارة اللوجو**\n\n"
+        f"🎨 إدارة اللوجو\n\n"
         f"الحالة: {status_text}\n\n"
         f"• عند التفعيل: المستخدمين المجانيين يحصلون على لوجو متحرك ✨\n"
         f"• عند الإيقاف: لا يُضاف لوجو لأي أحد ⭕\n"
@@ -303,8 +334,7 @@ async def manage_logo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return MAIN_MENU
@@ -332,7 +362,7 @@ async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     text = (
-        "📢 **إرسال رسالة جماعية**\n\n"
+        "📢 إرسال رسالة جماعية\n\n"
         "أرسل الرسالة التي تريد إرسالها لجميع المستخدمين:\n\n"
         "⚠️ تأكد من صياغة الرسالة بعناية!"
     )
@@ -342,8 +372,7 @@ async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await query.edit_message_text(
         text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return BROADCAST_MESSAGE
@@ -364,8 +393,7 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await context.bot.send_message(
                 chat_id=user['user_id'],
-                text=message_text,
-                parse_mode='Markdown'
+                text=message_text
             )
             success_count += 1
         except Exception as e:
@@ -373,7 +401,7 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
             failed_count += 1
     
     result_text = (
-        f"✅ **تم الإرسال!**\n\n"
+        f"✅ تم الإرسال!\n\n"
         f"✔️ نجح: {success_count}\n"
         f"❌ فشل: {failed_count}\n"
         f"📊 الإجمالي: {len(all_users)}"
@@ -384,8 +412,7 @@ async def send_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await update.message.reply_text(
         result_text,
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
+        reply_markup=reply_markup
     )
     
     return MAIN_MENU
@@ -424,6 +451,7 @@ admin_conv_handler = ConversationHandler(
         AWAITING_USER_ID: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, receive_user_id),
             CallbackQueryHandler(admin_back, pattern='^admin_back$'),
+            CallbackQueryHandler(admin_back, pattern='^admin_main$'),
         ],
         AWAITING_DAYS: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, receive_days),
