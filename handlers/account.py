@@ -1,5 +1,5 @@
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from datetime import datetime
 
@@ -7,142 +7,126 @@ from database import (
     get_user,
     is_subscribed,
     get_user_language,
-    update_user_interaction,
-    get_daily_download_count
+    get_daily_download_count,
+    get_bonus_downloads
 )
-from utils import get_message
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def account_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض معلومات حساب المستخدم"""
-    user = update.message.from_user
-    user_id = user.id
+FREE_USER_DOWNLOAD_LIMIT = 5
+
+async def show_account_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض معلومات الحساب"""
+    query = update.callback_query
+    await query.answer()
     
-    # تحديث آخر تفاعل
-    update_user_interaction(user_id)
+    user_id = query.from_user.id
+    lang = get_user_language(user_id)
     
     # جلب بيانات المستخدم
     user_data = get_user(user_id)
     
     if not user_data:
-        await update.message.reply_text(
-            "❌ لم يتم العثور على بياناتك.\n\n"
-            "الرجاء إرسال /start لتسجيل حسابك."
-        )
-        return
-    
-    # التحقق من الاشتراك
-    is_vip = is_subscribed(user_id)
-    subscription_end = user_data.get('subscription_end')
-    daily_downloads = get_daily_download_count(user_id)
-    
-    # حساب الوقت المتبقي
-    if is_vip and subscription_end:
-        now = datetime.now()
-        remaining = subscription_end - now
-        
-        if remaining.total_seconds() > 0:
-            days = remaining.days
-            hours = remaining.seconds // 3600
-            minutes = (remaining.seconds % 3600) // 60
-            
-            # عرض الوقت المتبقي بشكل جميل
-            if days > 0:
-                remaining_text = f"{days} يوم، {hours} ساعة"
-            elif hours > 0:
-                remaining_text = f"{hours} ساعة، {minutes} دقيقة"
-            else:
-                remaining_text = f"{minutes} دقيقة"
-            
-            # تاريخ انتهاء الاشتراك بالتفصيل (24 ساعة)
-            expiry_date = subscription_end.strftime("%Y-%m-%d %H:%M")
-            expiry_status = "✅"
+        if lang == 'ar':
+            await query.edit_message_text("❌ لم يتم العثور على بياناتك!")
         else:
-            remaining_text = "❌ منتهي"
-            expiry_date = "منتهي"
-            expiry_status = "❌"
-            is_vip = False  # الاشتراك منتهي
-    else:
-        remaining_text = "لا يوجد"
-        expiry_date = "لا يوجد اشتراك"
-        expiry_status = "➖"
-    
-    # بناء رسالة البطاقة
-    account_text = (
-        f"🧑 **بطاقتك الشخصية**\n\n"
-        f"🆔 **المعرف:** `{user_id}`\n"
-        f"💎 **الحالة:** {'🔥 VIP' if is_vip else '🆓 مجاني'}\n"
-        f"📊 **التحميلات اليوم:** {daily_downloads}/{5 if not is_vip else '∞'} 📈\n"
-    )
-    
-    if is_vip:
-        account_text += f"⏱️ **المتبقي:** {remaining_text} ⚡\n\n"
-    else:
-        account_text += f"⏱️ **المتبقي:** {remaining_text}\n\n"
-    
-    account_text += f"{'👑 **مشترك VIP** 👑' if is_vip else '🆓 مستخدم مجاني'}\n\n"
-    
-    if is_vip and subscription_end and expiry_status == "✅":
-        account_text += (
-            f"📦 **تفاصيل الاشتراك:**\n\n"
-            f"✅ تحميلات: **غير محدودة** ∞\n"
-            f"✅ مدة الفيديو: **بلا حدود** ⏰\n"
-            f"✅ بدون لوجو 🎨\n"
-            f"✅ جودات عالية 📺\n"
-            f"✅ أولوية في المعالجة ⚡\n\n"
-            f"⏰ **صالح حتى:** `{expiry_date}`\n"
-            f"⌛ **الوقت المتبقي:** {remaining_text}"
-        )
-    else:
-        account_text += (
-            f"💡 **اشترك في VIP للحصول على:**\n\n"
-            f"✅ تحميلات **غير محدودة** ∞\n"
-            f"✅ بدون انتظار ⚡\n"
-            f"✅ جودة **4K/8K** 🎬\n"
-            f"✅ **بدون لوجو** 🎨\n"
-            f"✅ دعم فني سريع 💬\n"
-            f"✅ أولوية في الخادم 🚀\n\n"
-            f"💰 باقات تبدأ من **$5/شهر**\n\n"
-            f"📩 للاشتراك: @wahab161"
-        )
-    
-    await update.message.reply_text(account_text, parse_mode='Markdown')
-
-async def test_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """اختبار حالة الاشتراك (للتطوير فقط)"""
-    user_id = update.message.from_user.id
-    
-    is_vip = is_subscribed(user_id)
-    user_data = get_user(user_id)
-    
-    if not user_data:
-        await update.message.reply_text("❌ لم يتم العثور على بياناتك")
+            await query.edit_message_text("❌ User data not found!")
         return
     
+    # معلومات المستخدم
+    username = user_data.get('username', 'N/A')
+    full_name = user_data.get('full_name', 'User')
+    registration_date = user_data.get('registration_date', datetime.now())
+    download_count = user_data.get('download_count', 0)
+    referral_code = user_data.get('referral_code', 'N/A')
+    referrals_count = len(user_data.get('referrals', []))
+    successful_referrals = user_data.get('successful_referrals', 0)
+    bonus_downloads = get_bonus_downloads(user_id)
+    
+    # حالة الاشتراك
+    is_vip = is_subscribed(user_id)
+    is_lifetime = user_data.get('is_lifetime_vip', False)
     subscription_end = user_data.get('subscription_end')
     
-    test_text = (
-        f"🧪 **اختبار الاشتراك**\n\n"
-        f"🆔 User ID: `{user_id}`\n"
-        f"💎 VIP: {'✅ نعم' if is_vip else '❌ لا'}\n"
-    )
+    # التحميلات اليومية
+    daily_downloads = get_daily_download_count(user_id)
+    remaining_downloads = FREE_USER_DOWNLOAD_LIMIT - daily_downloads if not is_vip else "∞"
     
-    if subscription_end:
-        now = datetime.now()
-        remaining = subscription_end - now
-        
-        test_text += (
-            f"📅 تاريخ الانتهاء: `{subscription_end.strftime('%Y-%m-%d %H:%M:%S')}`\n"
-            f"⏰ الآن: `{now.strftime('%Y-%m-%d %H:%M:%S')}`\n"
-            f"⌛ الفرق: `{remaining.days} يوم، {remaining.seconds // 3600} ساعة، {(remaining.seconds % 3600) // 60} دقيقة`\n"
-            f"✅ صالح: {'نعم' if remaining.total_seconds() > 0 else 'لا (منتهي)'}"
-        )
+    # تنسيق التاريخ
+    reg_date_str = registration_date.strftime('%Y-%m-%d') if isinstance(registration_date, datetime) else 'N/A'
+    
+    # حالة VIP
+    if is_lifetime:
+        vip_status_ar = "♾️ VIP مدى الحياة"
+        vip_status_en = "♾️ Lifetime VIP"
+    elif is_vip and subscription_end:
+        days_left = (subscription_end - datetime.now()).days
+        vip_status_ar = f"⭐ VIP (متبقي {days_left} يوم)"
+        vip_status_en = f"⭐ VIP ({days_left} days left)"
     else:
-        test_text += "📅 تاريخ الانتهاء: لا يوجد"
+        vip_status_ar = "🆓 مجاني"
+        vip_status_en = "🆓 Free"
     
-    await update.message.reply_text(test_text, parse_mode='Markdown')
+    # بناء الرسالة
+    if lang == 'ar':
+        text = (
+            f"👤 **معلومات الحساب**\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📝 **البيانات الأساسية:**\n"
+            f"• الاسم: {full_name}\n"
+            f"• المعرف: @{username}\n"
+            f"• الآيدي: `{user_id}`\n"
+            f"• تاريخ التسجيل: {reg_date_str}\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"💎 **الحالة:**\n"
+            f"• {vip_status_ar}\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📊 **إحصائيات التحميل:**\n"
+            f"• إجمالي التحميلات: {download_count}\n"
+            f"• التحميلات اليوم: {daily_downloads}/{FREE_USER_DOWNLOAD_LIMIT if not is_vip else '∞'}\n"
+            f"• تحميلات إضافية: {bonus_downloads} 💎\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"👥 **نظام الإحالة:**\n"
+            f"• كود الإحالة: `{referral_code}`\n"
+            f"• إجمالي الدعوات: {referrals_count}\n"
+            f"• الإحالات الناجحة: {successful_referrals} 🎯\n\n"
+            f"💡 **نصيحة:** كل 10 تحميلات من صديقك = +10 تحميلات لك!\n"
+            f"🏆 100 إحالة ناجحة = VIP مدى الحياة!"
+        )
+        back_text = "🔙 العودة"
+    else:
+        text = (
+            f"👤 **Account Information**\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📝 **Basic Info:**\n"
+            f"• Name: {full_name}\n"
+            f"• Username: @{username}\n"
+            f"• ID: `{user_id}`\n"
+            f"• Registration: {reg_date_str}\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"💎 **Status:**\n"
+            f"• {vip_status_en}\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"📊 **Download Stats:**\n"
+            f"• Total downloads: {download_count}\n"
+            f"• Today's downloads: {daily_downloads}/{FREE_USER_DOWNLOAD_LIMIT if not is_vip else '∞'}\n"
+            f"• Bonus downloads: {bonus_downloads} 💎\n\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"👥 **Referral System:**\n"
+            f"• Referral code: `{referral_code}`\n"
+            f"• Total invites: {referrals_count}\n"
+            f"• Successful referrals: {successful_referrals} 🎯\n\n"
+            f"💡 **Tip:** Every 10 downloads from your friend = +10 downloads for you!\n"
+            f"🏆 100 successful referrals = Lifetime VIP!"
+        )
+        back_text = "🔙 Back"
+    
+    keyboard = [[InlineKeyboardButton(back_text, callback_data='main_menu')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await query.edit_message_text(
+        text,
+        reply_markup=reply_markup,
+        parse_mode='Markdown'
+    )
