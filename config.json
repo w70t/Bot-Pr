@@ -1,51 +1,39 @@
 {
-  "payments_enabled": true,
-  "binance_api_key": "YOUR_BINANCE_API_KEY_HERE",
-  "binance_secret_key": "YOUR_BINANCE_SECRET_KEY_HERE",
-  "subscription_price_usd": 2.0,
-
-  "premium_features": {
-    "large_downloads": {
-      "enabled": true,
-      "limit_mb": 50
-    },
-    "add_custom_logo": {
-      "enabled": true,
-      "logo_path": "Logo.png"
-    }
-  },
-
-  "MAX_FREE_DURATION": 300,
-  "LOGO_PATH": "Logo.png",
-  "LOG_CHANNEL_ID": null,
-  "LOG_CHANNEL_ID_VIDEOS": null,
-  
+  "LOGO_PATH": "logo.png",
+  "LOGO_ENABLED": true,
+  "MAX_FREE_DURATION": 600,
+  "MAX_FILE_SIZE_MB": 2000,
   "BLOCKED_DOMAINS": [
     "pornhub.com",
-    "xvideos.com", 
-    "xnxx.com",
-    "redtube.com",
-    "youporn.com",
-    "porn.com",
-    "sex.com",
-    "tube8.com",
-    "spankbang.com",
-    "eporner.com",
-    "hqporner.com",
-    "txxx.com",
-    "xhamster.com",
-    "beeg.com",
-    "drtuber.com"
+    "xvideos.com",
+    "xnxx.com"
   ],
-  
   "ADULT_CONTENT_KEYWORDS": [
     "porn",
     "xxx",
-    "sex",
-    "nude",
-    "nsfw",
     "adult",
-    "18+",
-    "erotic"
-  ]
+    "sex"
+  ],
+  "DOWNLOAD_LIMITS": {
+    "free": 5,
+    "vip": -1
+  },
+  "QUALITY_OPTIONS": {
+    "best": "1080p",
+    "medium": "720p",
+    "audio": "mp3"
+  },
+  "SUPPORTED_PLATFORMS": [
+    "youtube.com",
+    "facebook.com",
+    "instagram.com",
+    "tiktok.com",
+    "twitter.com",
+    "x.com"
+  ],
+  "BOT_SETTINGS": {
+    "enable_watermark": true,
+    "enable_logging": true,
+    "enable_analytics": true
+  }
 }
