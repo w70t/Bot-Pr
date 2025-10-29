@@ -15,29 +15,64 @@ def load_config():
     """يقوم بتحميل الإعدادات من ملف JSON"""
     global CONFIG
     try:
+        if not os.path.exists('config.json'):
+            logger.warning("⚠️ ملف config.json غير موجود. سيتم استخدام إعدادات افتراضية.")
+            CONFIG = {
+                "LOGO_PATH": "logo.png",
+                "MAX_FREE_DURATION": 600,
+                "MAX_FILE_SIZE_MB": 2000,
+                "BLOCKED_DOMAINS": [],
+                "ADULT_CONTENT_KEYWORDS": []
+            }
+            return True
+        
         with open('config.json', 'r', encoding='utf-8') as f:
             CONFIG = json.load(f)
         logger.info("✅ تم تحميل ملف الإعدادات بنجاح.")
-    except FileNotFoundError:
-        logger.error("!!! ملف config.json غير موجود. سيتم استخدام إعدادات افتراضية.")
+        return True
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ خطأ في قراءة ملف config.json: {e}")
         CONFIG = {}
-    except json.JSONDecodeError:
-        logger.error("!!! خطأ في قراءة ملف config.json. تأكد من أن تنسيقه صحيح.")
+        return False
+    except Exception as e:
+        logger.error(f"❌ خطأ غير متوقع: {e}")
         CONFIG = {}
+        return False
 
 def load_messages():
     """يقوم بتحميل الرسائل من ملف JSON"""
     global MESSAGES
     try:
+        if not os.path.exists('messages.json'):
+            logger.warning("⚠️ ملف messages.json غير موجود. سيتم استخدام رسائل افتراضية.")
+            MESSAGES = {
+                "ar": {
+                    "start_command_desc": "بدء البوت",
+                    "account_command_desc": "حسابي",
+                    "help_command_desc": "المساعدة",
+                    "admin_command_desc": "لوحة الأدمن"
+                },
+                "en": {
+                    "start_command_desc": "Start bot",
+                    "account_command_desc": "My account",
+                    "help_command_desc": "Help",
+                    "admin_command_desc": "Admin panel"
+                }
+            }
+            return True
+        
         with open('messages.json', 'r', encoding='utf-8') as f:
             MESSAGES = json.load(f)
         logger.info("✅ تم تحميل ملف الرسائل بنجاح.")
-    except FileNotFoundError:
-        logger.error("!!! ملف messages.json غير موجود. سيتم استخدام رسائل افتراضية.")
+        return True
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ خطأ في قراءة ملف messages.json: {e}")
         MESSAGES = {}
-    except json.JSONDecodeError:
-        logger.error("!!! خطأ في قراءة ملف messages.json. تأكد من أن تنسيقه صحيح.")
+        return False
+    except Exception as e:
+        logger.error(f"❌ خطأ غير متوقع: {e}")
         MESSAGES = {}
+        return False
 
 def get_message(lang, key, **kwargs):
     """يجلب رسالة مترجمة بناءً على اللغة والمفتاح"""
@@ -74,8 +109,6 @@ def apply_animated_watermark(input_path, output_path, logo_path, size=150):
     try:
         logger.info(f"✨ بدء إضافة اللوجو المتحرك: {input_path}")
         
-        # حركة من الزوايا الأربع
-        # يتحرك من أعلى يمين → أسفل يمين → أسفل يسار → أعلى يسار → يتكرر
         cmd = [
             'ffmpeg',
             '-i', input_path,
@@ -135,7 +168,6 @@ def apply_watermark(input_path, output_path, logo_path, position='center_right',
     try:
         logger.info(f"🎨 إضافة لوجو ثابت: {input_path}")
         
-        # مواضع بسيطة
         positions = {
             'top_left': '10:10',
             'top_right': f'W-{size}-10:10',
@@ -261,5 +293,6 @@ def validate_url(url: str) -> bool:
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return url_pattern.match(url) is not None
 
+# تحميل عند الاستيراد
 load_config()
 load_messages()
