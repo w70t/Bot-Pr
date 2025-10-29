@@ -1,9 +1,8 @@
 import os
 import logging
 
-# ⭐ إضافة هذا السطر لتحميل متغيرات .env
 from dotenv import load_dotenv
-load_dotenv()  # يحمل المتغيرات من ملف .env
+load_dotenv()
 
 from telegram import Update
 from telegram.ext import (
@@ -15,16 +14,24 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# استيراد المكونات
-from handlers.start import start, select_language, handle_menu_buttons
-from handlers.download import handle_download, handle_quality_selection
+# استيراد المكونات - مصحح
+from handlers.start import (
+    start, 
+    select_language,
+    handle_back_button,
+    handle_download_button,
+    handle_help_button,
+    handle_settings_button
+)
+from handlers.download import handle_download, handle_quality_selection, handle_use_bonus_callback
 from handlers.admin import admin_conv_handler
-from handlers.account import account_info, test_subscription
+from handlers.account import show_account_info
+from handlers.referral import referral_callback_handler, show_referral_menu
+from handlers.subscription import show_subscription_menu
 from handlers.video_info import handle_video_message
 from utils import get_message, escape_markdown, get_config, load_config, setup_bot_menu
 from database import init_db, update_user_interaction
 
-# إعدادات أساسية
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
     level=logging.INFO
@@ -36,7 +43,6 @@ WEBHOOK_URL = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 PORT = int(os.getenv("PORT", 8443))
 LOG_CHANNEL_ID = os.getenv("LOG_CHANNEL_ID")
 
-# باقي الكود كما هو...
 async def forward_to_log_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """إعادة توجيه الرسائل إلى قناة اللوج"""
     if not LOG_CHANNEL_ID:
@@ -48,130 +54,119 @@ async def forward_to_log_channel(update: Update, context: ContextTypes.DEFAULT_T
     username_part = f"@{user.username}" if user.username else "لا يوجد"
     
     user_info = (
-        f"👤 **رسالة من:** {escaped_full_name}\n"
-        f"🆔 **ID:** `{user.id}`\n"
-        f"🔗 **Username:** {username_part}"
+        f"📩 رسالة جديدة\n\n"
+        f"👤 من: {escaped_full_name}\n"
+        f"🆔 ID: `{user.id}`\n"
+        f"🔗 Username: {username_part}\n\n"
+        f"💬 الرسالة:\n{escape_markdown(update.message.text or 'رسالة فارغة')}"
     )
-
+    
     try:
         await context.bot.send_message(
             chat_id=LOG_CHANNEL_ID,
             text=user_info,
-            parse_mode='MarkdownV2'
-        )
-        await context.bot.forward_message(
-            chat_id=LOG_CHANNEL_ID,
-            from_chat_id=update.message.chat_id,
-            message_id=update.message.message_id
+            parse_mode='Markdown'
         )
     except Exception as e:
-        logger.error(f"❌ فشل إعادة توجيه الرسالة إلى القناة {LOG_CHANNEL_ID}: {e}")
+        logger.error(f"❌ فشل إرسال الرسالة لقناة اللوج: {e}")
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج أمر المساعدة"""
-    from database import get_user_language
+async def track_user_activity(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تتبع نشاط المستخدم"""
+    if update.effective_user:
+        update_user_interaction(update.effective_user.id)
+
+def main():
+    """تشغيل البوت"""
     
-    user_id = update.message.from_user.id
-    lang = get_user_language(user_id)
-    update_user_interaction(user_id)
+    # التحقق من توفر التوكن
+    if not BOT_TOKEN:
+        logger.error("❌ BOT_TOKEN غير موجود في متغيرات البيئة!")
+        return
     
-    help_text = get_message(lang, "help_message")
-    await update.message.reply_text(help_text, parse_mode='Markdown')
-
-async def post_init(application: Application):
-    """يتم تنفيذه بعد تهيئة البوت"""
-    logger.info("🚀 بدء إعداد قائمة الأوامر...")
-    await setup_bot_menu(application.bot)
-    logger.info("✅ تم إعداد قائمة الأوامر بنجاح!")
-
-def main() -> None:
-    """تشغيل البوت الرئيسي"""
-    logger.info("=" * 50)
-    logger.info("🤖 بدء تشغيل البوت...")
-    logger.info("=" * 50)
+    # تهيئة قاعدة البيانات
+    if not init_db():
+        logger.error("❌ فشل الاتصال بقاعدة البيانات!")
+        return
     
     # تحميل الإعدادات
-    load_config()
-    config = get_config()
-    
-    # التحقق من قاعدة البيانات
-    if not init_db():
-        logger.critical("!!! فشل الاتصال بقاعدة البيانات. إيقاف البوت.")
+    if not load_config():
+        logger.error("❌ فشل تحميل ملف الإعدادات!")
         return
-
+    
     # إنشاء التطبيق
-    application = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    application = Application.builder().token(BOT_TOKEN).build()
     
-    # تخزين الإعدادات
-    application.bot_data["config"] = config
-
-    # ===== تسجيل الـ Handlers =====
+    # تسجيل المعالجات
+    logger.info("🔧 جاري تسجيل المعالجات...")
     
-    # 1. Handler لإعادة توجيه الرسائل للوج (يعمل قبل باقي الـ handlers)
-    application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, forward_to_log_channel),
-        group=-1
-    )
-
-    # 2. أوامر البداية
+    # معالج /start
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
     
-    # 3. معلومات الحساب
-    application.add_handler(CommandHandler("account", account_info))
-    application.add_handler(CommandHandler("testsub", test_subscription))
+    # معالج اختيار اللغة
+    application.add_handler(CallbackQueryHandler(select_language, pattern='^lang_'))
     
-    # 4. Handler للفيديوهات المرسلة
-    application.add_handler(MessageHandler(filters.VIDEO, handle_video_message))
+    # معالج القائمة الرئيسية والأزرار
+    application.add_handler(CallbackQueryHandler(handle_back_button, pattern='^main_menu$'))
+    application.add_handler(CallbackQueryHandler(handle_download_button, pattern='^download_video$'))
+    application.add_handler(CallbackQueryHandler(handle_help_button, pattern='^help_menu$'))
+    application.add_handler(CallbackQueryHandler(handle_settings_button, pattern='^settings_menu$'))
+    application.add_handler(CallbackQueryHandler(select_language, pattern='^change_language$'))
     
-    # 5. Handler لاختيار اللغة
-    application.add_handler(MessageHandler(
-        filters.Regex("^(English 🇬🇧|العربية 🇸🇦)$"), 
-        select_language
-    ))
+    # معالج الحساب
+    application.add_handler(CallbackQueryHandler(show_account_info, pattern='^account_menu$'))
     
-    # 6. Handler لأزرار القائمة الرئيسية
-    application.add_handler(MessageHandler(
-        filters.Regex("^(📥 تحميل فيديو|📥 Download Video|👤 حسابي|👤 My Account|❓ المساعدة|❓ Help|⭐ الاشتراك VIP|⭐ Subscribe VIP|🌐 تغيير اللغة|🌐 Change Language)$"),
-        handle_menu_buttons
-    ))
-    
-    # 7. Handler لاختيار الجودة (Callback Query)
+    # معالج الإحالة
+    application.add_handler(CallbackQueryHandler(show_referral_menu, pattern='^referral_menu$'))
     application.add_handler(CallbackQueryHandler(
-        handle_quality_selection,
-        pattern="^quality_"
+        referral_callback_handler,
+        pattern='^(ref_friends_list|ref_achievements)$'
     ))
     
-    # 8. Handler للوحة تحكم الأدمن
+    # معالج الاشتراك
+    application.add_handler(CallbackQueryHandler(show_subscription_menu, pattern='^subscription_menu$'))
+    
+    # معالج اختيار الجودة
+    application.add_handler(CallbackQueryHandler(handle_quality_selection, pattern='^quality_'))
+    
+    # معالج زر استخدام البونص
+    application.add_handler(CallbackQueryHandler(handle_use_bonus_callback, pattern='^use_bonus$'))
+    
+    # معالج لوحة الأدمن
     application.add_handler(admin_conv_handler)
     
-    # 9. Handler لتحميل الفيديوهات من الروابط (يجب أن يكون الأخير)
-    application.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND & filters.Regex(r"https?://\S+"),
-            handle_download,
-        )
-    )
+    # معالج الرسائل النصية (الروابط)
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & filters.Regex(r'http[s]?://'),
+        handle_download
+    ))
+    
+    # معالج الفيديوهات
+    application.add_handler(MessageHandler(filters.VIDEO, handle_video_message))
+    
+    # معالج تتبع النشاط
+    application.add_handler(MessageHandler(filters.ALL, track_user_activity), group=1)
     
     logger.info("✅ تم تسجيل جميع المعالجات بنجاح.")
-    logger.info("=" * 50)
-
+    
+    # إعداد قائمة البوت
+    try:
+        import asyncio
+        asyncio.get_event_loop().run_until_complete(setup_bot_menu(application.bot))
+        logger.info("✅ تم إعداد قائمة البوت.")
+    except Exception as e:
+        logger.warning(f"⚠️ فشل إعداد قائمة البوت: {e}")
+    
     # تشغيل البوت
     if WEBHOOK_URL:
-        logger.info(f"🌐 وضع Webhook")
-        logger.info(f"📍 المنفذ: {PORT}")
-        logger.info(f"🔗 URL: https://{WEBHOOK_URL}/{BOT_TOKEN}")
-        logger.info("=" * 50)
-        
+        logger.info(f"🌐 تشغيل البوت باستخدام Webhook على {WEBHOOK_URL}")
         application.run_webhook(
             listen="0.0.0.0",
             port=PORT,
             url_path=BOT_TOKEN,
-            webhook_url=f"https://{WEBHOOK_URL}/{BOT_TOKEN}"
+            webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
         )
     else:
-        logger.info("🔄 وضع Polling (محلي)")
-        logger.info("=" * 50)
+        logger.info("🚀 تشغيل البوت باستخدام Polling...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
